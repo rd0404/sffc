@@ -1,6 +1,11 @@
 [build]
   functions = "netlify/functions"
 
+# Runs once an hour, checks for any newly-finished gameweek, and snapshots
+# its results into Netlify Blobs. No manual trigger needed.
+[functions."snapshot-gameweek-background"]
+  schedule = "@hourly"
+
 # Optional but handy: lets you call /api/gameweek instead of the longer
 # default /.netlify/functions/gameweek path.
 [[redirects]]
@@ -11,4 +16,9 @@
 [[redirects]]
   from = "/api/progress"
   to = "/.netlify/functions/progress"
+  status = 200
+
+[[redirects]]
+  from = "/api/standings"
+  to = "/.netlify/functions/standings"
   status = 200
