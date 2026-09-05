@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SFFC Fantasy League</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B1F17;
+    --surface: #122A20;
+    --surface-2: #163326;
+    --line: #234135;
+    --amber: #F5A623;
+    --win: #3FA66A;
+    --loss: #C0453B;
+    --draw: #B7A96A;
+    --text: #F1EFE6;
+    --text-muted: #93A99C;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .scoreboard-nums { font-variant-numeric: tabular-nums; }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 20px 24px 0;
+  }
+
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    max-width: 920px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0.3px;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .season-tag {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .refresh-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .refresh-btn:hover { border-color: var(--amber); }
+  .refresh-btn:active { transform: translateY(1px); }
+
+  nav {
+    max-width: 920px;
+    margin: 18px auto 0;
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 4px;
+    border: 1px solid var(--line);
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    padding: 10px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: var(--amber);
+    color: #201503;
+  }
+
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px 24px 60px;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-intro {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 18px;
+    max-width: 65ch;
+  }
+
+  .live-flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(245, 166, 35, 0.12);
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 0 10px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  th.num, td.num { text-align: center; }
+  td {
+    padding: 12px 10px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(odd) td { background: rgba(255,255,255,0.015); }
+  .rank-cell { color: var(--text-muted); width: 24px; }
+  .club-cell { font-weight: 600; }
+  .pts-cell { font-weight: 700; color: var(--amber); }
+
+  .fixture-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .fixture-row:last-child { border-bottom: none; }
+  .fixture-club { font-weight: 600; font-size: 15px; }
+  .fixture-club.home { text-align: right; }
+  .fixture-club.away { text-align: left; }
+  .fixture-score {
+    font-family: 'Oswald', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    min-width: 34px;
+    text-align: center;
+  }
+  .fixture-dash { color: var(--text-muted); font-size: 13px; }
+  .status-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-align: center;
+    justify-self: center;
+  }
+  .status-live { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .status-finished { background: rgba(63,166,106,0.15); color: var(--win); }
+  .status-not_started { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+  .win-score { color: var(--win); }
+  .loss-score { color: var(--text-muted); }
+
+  .progress-item { margin-bottom: 16px; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .progress-club { font-weight: 600; }
+  .progress-count { color: var(--text-muted); }
+  .progress-track {
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 100px;
+  }
+
+  .totw-winner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, rgba(245,166,35,0.14), rgba(245,166,35,0.02));
+    border: 1px solid var(--amber);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .totw-winner-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .totw-winner-club {
+    font-family: 'Oswald', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .totw-winner-score {
+    font-family: 'Oswald', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--amber);
+  }
+
+  .totw-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  .totw-row:last-child { border-bottom: none; }
+  .totw-rank {
+    width: 28px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .totw-club { flex: 1; font-weight: 600; }
+  .totw-score {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .state-msg {
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 30px 0;
+    text-align: center;
+  }
+  .state-msg.error { color: var(--loss); }
+
+  @media (max-width: 600px) {
+    .fixture-row { grid-template-columns: 1fr auto 1fr; grid-template-areas: "home score away" "homebadge . awaybadge"; }
+    h1 { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <h1>SFFC Fantasy League</h1>
+      <div class="season-tag">Season 2026/27 &middot; live from the official FPL API</div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn">Refresh</button>
+  </div>
+  <nav>
+    <button class="tab-btn active" data-tab="standings">Standings</button>
+    <button class="tab-btn" data-tab="results">Results</button>
+    <button class="tab-btn" data-tab="totw">Team of the Week</button>
+    <button class="tab-btn" data-tab="progress">Played vs Remaining</button>
+  </nav>
+</header>
+
+<main>
+
+  <section id="standings" class="panel active">
+    <p class="panel-intro">Computed live from every finished gameweek — 3 points for a win, 1 for a draw. The current gameweek's live scores are folded in as a provisional result until it's fully finished.</p>
+    <div id="standingsContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="results" class="panel">
+    <p class="panel-intro">This gameweek's matchups, derived automatically from the real Premier League fixture list.</p>
+    <div id="resultsContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="totw" class="panel">
+    <p class="panel-intro">All 20 clubs ranked by this gameweek's live score — sum of each club's 6 managers, doubled for their captain. Updates as matches are played.</p>
+    <div id="totwContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="progress" class="panel">
+    <p class="panel-intro">Per club, how many of the 6 managers' starting XI players have kicked off this gameweek vs are still to come.</p>
+    <div id="progressContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+</main>
+
+<script>
+  const tabs = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.panel');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  async function fetchJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+    return res.json();
+  }
+
+  function ordinal(n) {
+    const s = ['th','st','nd','rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  async function loadStandings() {
+    const el = document.getElementById('standingsContent');
+    try {
+      const data = await fetchJSON('/api/standings-live');
+      let html = '';
+      if (data.provisionalEvent) {
+        html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
+      }
+      html += '<table><thead><tr><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">Pts</th></tr></thead><tbody>';
+      data.standings.forEach((t, i) => {
+        html += `<tr>
+          <td class="rank-cell num scoreboard-nums">${i + 1}</td>
+          <td class="club-cell">${t.club}</td>
+          <td class="num scoreboard-nums">${t.played}</td>
+          <td class="num scoreboard-nums">${t.won}</td>
+          <td class="num scoreboard-nums">${t.drawn}</td>
+          <td class="num scoreboard-nums">${t.lost}</td>
+          <td class="num scoreboard-nums">${t.scoreFor}</td>
+          <td class="num pts-cell scoreboard-nums">${t.points}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load standings &mdash; ${err.message}</div>`;
+    }
+  }
+
+  async function loadResults() {
+    const el = document.getElementById('resultsContent');
+    try {
+      const data = await fetchJSON('/api/gameweek');
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div><div>`;
+      data.matches.forEach(m => {
+        const homeWinning = m.home.score > m.away.score;
+        const awayWinning = m.away.score > m.home.score;
+        html += `<div class="fixture-row">
+          <div class="fixture-club home">${m.home.club}</div>
+          <div class="fixture-score ${homeWinning ? 'win-score' : (awayWinning ? 'loss-score' : '')} scoreboard-nums">${m.home.score}</div>
+          <span class="status-badge status-${m.status}">${m.status === 'not_started' ? 'NOT STARTED' : m.status.toUpperCase()}</span>
+          <div class="fixture-score ${awayWinning ? 'win-score' : (homeWinning ? 'loss-score' : '')} scoreboard-nums">${m.away.score}</div>
+          <div class="fixture-club away">${m.away.club}</div>
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load results &mdash; ${err.message}</div>`;
+    }
+  }
+
+  async function loadProgress() {
+    const el = document.getElementById('progressContent');
+    try {
+      const data = await fetchJSON('/api/progress');
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
+      const sorted = [...data.teams].sort((a, b) => b.playersPlayed - a.playersPlayed);
+      sorted.forEach(t => {
+        const pct = Math.round((t.playersPlayed / t.totalStarters) * 100);
+        html += `<div class="progress-item">
+          <div class="progress-label">
+            <span class="progress-club">${t.club}</span>
+            <span class="progress-count scoreboard-nums">${t.playersPlayed} played &middot; ${t.playersLeft} left</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      });
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load progress &mdash; ${err.message}</div>`;
+    }
+  }
+
+  async function loadTeamOfWeek() {
+    const el = document.getElementById('totwContent');
+    try {
+      const data = await fetchJSON('/api/gameweek');
+      const teams = [];
+      data.matches.forEach(m => {
+        teams.push({ club: m.home.club, score: m.home.score });
+        teams.push({ club: m.away.club, score: m.away.score });
+      });
+      teams.sort((a, b) => b.score - a.score);
+
+      const winner = teams[0];
+      let html = `<div class="totw-winner">
+        <div>
+          <div class="totw-winner-label">GAMEWEEK ${data.event} &middot; TOP SCORE</div>
+          <div class="totw-winner-club">${winner.club}</div>
+        </div>
+        <div class="totw-winner-score scoreboard-nums">${winner.score}</div>
+      </div><div>`;
+
+      teams.forEach((t, i) => {
+        html += `<div class="totw-row">
+          <span class="totw-rank scoreboard-nums">${i + 1}</span>
+          <span class="totw-club">${t.club}</span>
+          <span class="totw-score scoreboard-nums">${t.score}</span>
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load Team of the Week &mdash; ${err.message}</div>`;
+    }
+  }
+
+  function loadAll() {
+    loadStandings();
+    loadResults();
+    loadTeamOfWeek();
+    loadProgress();
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', loadAll);
+  loadAll();
+</script>
+
+</body>
+</html>
