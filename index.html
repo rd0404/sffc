@@ -38,7 +38,7 @@
     z-index: 10;
     background: var(--bg);
     border-bottom: 1px solid var(--line);
-    padding: 20px 24px 0;
+    padding: 18px 24px;
   }
 
   .header-row {
@@ -80,33 +80,104 @@
   .refresh-btn:hover { border-color: var(--amber); }
   .refresh-btn:active { transform: translateY(1px); }
 
-  nav {
-    max-width: 920px;
-    margin: 18px auto 0;
+  .header-left {
     display: flex;
-    gap: 4px;
-    background: var(--surface);
-    border-radius: 8px;
-    padding: 4px;
-    border: 1px solid var(--line);
+    align-items: center;
+    gap: 14px;
   }
 
-  .tab-btn {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
+  .hamburger-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .hamburger-btn span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+  }
+  .hamburger-btn:hover { border-color: var(--amber); }
+
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 20;
+  }
+  .drawer-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    max-width: 80vw;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+  .drawer.open { transform: translateX(0); }
+
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 14px 10px;
+  }
+  .drawer-title {
     font-family: 'Oswald', sans-serif;
     font-weight: 600;
-    font-size: 14px;
-    letter-spacing: 0.3px;
-    padding: 10px 8px;
-    border-radius: 6px;
-    cursor: pointer;
+    font-size: 13px;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
   }
-  .tab-btn.active {
+  .drawer-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .drawer-close:hover { color: var(--amber); }
+
+  .drawer .tab-btn {
+    flex: none;
+    text-align: left;
+    padding: 13px 14px;
+    border-radius: 6px;
+    font-size: 15px;
+  }
+  .drawer .tab-btn.active {
     background: var(--amber);
     color: #201503;
+  }
+  .drawer .tab-btn:not(.active):hover {
+    background: rgba(255,255,255,0.05);
   }
 
   main {
@@ -299,19 +370,30 @@
 
 <header>
   <div class="header-row">
-    <div>
-      <h1>SFFC Fantasy League</h1>
-      <div class="season-tag">Season 2026/27 &middot; live from the official FPL API</div>
+    <div class="header-left">
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div>
+        <h1>SFFC Fantasy League</h1>
+        <div class="season-tag">Season 2026/27 &middot; live from the official FPL API</div>
+      </div>
     </div>
     <button class="refresh-btn" id="refreshBtn">Refresh</button>
   </div>
-  <nav>
-    <button class="tab-btn active" data-tab="standings">Standings</button>
-    <button class="tab-btn" data-tab="results">Results</button>
-    <button class="tab-btn" data-tab="totw">Team of the Week</button>
-    <button class="tab-btn" data-tab="progress">Played vs Remaining</button>
-  </nav>
 </header>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<nav class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">Menu</span>
+    <button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button>
+  </div>
+  <button class="tab-btn active" data-tab="standings">Standings</button>
+  <button class="tab-btn" data-tab="results">Results</button>
+  <button class="tab-btn" data-tab="totw">Team of the Week</button>
+  <button class="tab-btn" data-tab="progress">Played vs Remaining</button>
+</nav>
 
 <main>
 
@@ -340,12 +422,30 @@
 <script>
   const tabs = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('.panel');
+  const drawer = document.getElementById('drawer');
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const drawerClose = document.getElementById('drawerClose');
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    drawerOverlay.classList.add('open');
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    drawerOverlay.classList.remove('open');
+  }
+  hamburgerBtn.addEventListener('click', openDrawer);
+  drawerClose.addEventListener('click', closeDrawer);
+  drawerOverlay.addEventListener('click', closeDrawer);
+
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
       tabs.forEach(b => b.classList.remove('active'));
       panels.forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
+      closeDrawer();
     });
   });
 
