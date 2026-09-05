@@ -1,0 +1,14 @@
+[build]
+  functions = "netlify/functions"
+
+# Optional but handy: lets you call /api/gameweek instead of the longer
+# default /.netlify/functions/gameweek path.
+[[redirects]]
+  from = "/api/gameweek"
+  to = "/.netlify/functions/gameweek"
+  status = 200
+
+[[redirects]]
+  from = "/api/progress"
+  to = "/.netlify/functions/progress"
+  status = 200
