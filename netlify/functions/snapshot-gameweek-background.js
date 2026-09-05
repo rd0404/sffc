@@ -2,18 +2,16 @@
 // Runs automatically on the schedule set in netlify.toml (hourly) — no
 // manual trigger needed. Every run:
 //   1. Checks gameweeks 1..currentEvent in order.
-//   2. Skips any gameweek already snapshotted (idempotent — safe to run
-//      as often as you like).
+//   2. Skips any gameweek already snapshotted (idempotent).
 //   3. Skips any gameweek whose real fixtures aren't ALL finished yet.
 //   4. For the first gameweek that's finished and not yet snapshotted,
-//      computes each team's exact score for that gameweek (via each
-//      manager's entry history, which is stable regardless of what
-//      gameweek is "current" right now) and stores the match results
-//      and 3/1/0 points under key "gw-<event>".
+//      computes each team's exact score via manager history and stores
+//      the match results under key "gw-<event>".
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
+const { computeMatchResults } = require("../../lib/matchResults");
 const { resultsStore } = require("../../lib/blobStore");
 
 exports.handler = async () => {
@@ -57,46 +55,7 @@ exports.handler = async () => {
       clubScore[team.fplClubId] = score;
     }
 
-    const seen = new Set();
-    const results = [];
-
-    for (const team of teamsConfig) {
-      const homeId = team.fplClubId;
-      if (seen.has(homeId)) continue;
-
-      const awayId = opponentOf[homeId];
-      if (awayId == null) continue;
-
-      seen.add(homeId);
-      seen.add(awayId);
-
-      const homeTeam = teamsConfig.find((t) => t.fplClubId === homeId);
-      const awayTeam = teamsConfig.find((t) => t.fplClubId === awayId);
-      const homeScore = clubScore[homeId];
-      const awayScore = clubScore[awayId];
-
-      let homePts;
-      let awayPts;
-      if (homeScore > awayScore) {
-        homePts = 3;
-        awayPts = 0;
-      } else if (homeScore < awayScore) {
-        homePts = 0;
-        awayPts = 3;
-      } else {
-        homePts = 1;
-        awayPts = 1;
-      }
-
-      results.push({
-        home: homeTeam.club,
-        homeScore,
-        homePts,
-        away: awayTeam.club,
-        awayScore,
-        awayPts,
-      });
-    }
+    const results = computeMatchResults(teamsConfig, clubScore, opponentOf);
 
     await store.setJSON(`gw-${event}`, { event, results });
     break;
