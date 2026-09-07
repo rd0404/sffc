@@ -5,19 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SFFC Fantasy League</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0B1F17;
-    --surface: #122A20;
-    --surface-2: #163326;
-    --line: #234135;
-    --amber: #F5A623;
-    --win: #3FA66A;
-    --loss: #C0453B;
-    --draw: #B7A96A;
-    --text: #F1EFE6;
-    --text-muted: #93A99C;
+    --bg: #0E1015;
+    --surface: #161922;
+    --surface-2: #1B1F2B;
+    --line: #2A2F3D;
+    --amber: #D4AF37;
+    --amber-bright: #F0C75E;
+    --amber-dim: #8A6F2E;
+    --win: #F0C75E;
+    --loss: #C1494A;
+    --draw: #8B8D97;
+    --pitch: #2E8B63;
+    --pitch-bright: #3FB37F;
+    --text: #ECE9E2;
+    --text-muted: #8B8D97;
+    --text-faint: #5A5D6B;
   }
 
   * { box-sizing: border-box; }
@@ -30,7 +35,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .scoreboard-nums { font-variant-numeric: tabular-nums; }
+  .scoreboard-nums { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
 
   header {
     position: sticky;
@@ -141,18 +146,153 @@
   }
   .drawer.open { transform: translateX(0); }
 
-  .drawer-header {
+  .compare-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .compare-controls select {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+  .compare-vs {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .compare-opponent {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .compare-fixture-line {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .compare-stat-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 26px;
+  }
+  .compare-stat-table th {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0 10px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .compare-stat-table th:first-child { text-align: left; }
+  .compare-stat-table td {
+    padding: 11px 10px;
+    font-size: 13.5px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .compare-stat-table td:first-child {
+    text-align: left;
+    color: var(--text-muted);
+  }
+  .compare-stat-table tr:last-child td { border-bottom: none; }
+
+  .managers-behind-head {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--amber-bright);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .managers-behind-sub {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    max-width: 60ch;
+  }
+  .managers-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 600px) {
+    .managers-cols { grid-template-columns: 1fr; }
+  }
+  .managers-col-head {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .managers-col-sub {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .manager-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 14px 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
   }
-  .drawer-title {
-    font-family: 'Oswald', sans-serif;
+  .manager-row:last-child { border-bottom: none; }
+  .manager-names { min-width: 0; }
+  .manager-team-name {
+    font-size: 13.5px;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .manager-real-name {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .manager-pts {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
     font-size: 13px;
-    letter-spacing: 0.6px;
+  }
+  .manager-pts .gw { font-weight: 700; }
+
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 14px 10px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 6px;
+  }
+  .drawer-brand {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .drawer-season {
+    font-size: 12px;
     color: var(--text-muted);
+    margin-top: 2px;
   }
   .drawer-close {
     background: none;
@@ -164,6 +304,109 @@
     padding: 0 4px;
   }
   .drawer-close:hover { color: var(--amber); }
+
+  .drawer-group-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 14px 14px 4px;
+  }
+  .drawer-group-label:first-of-type { padding-top: 6px; }
+
+  .tab-icon { margin-right: 9px; }
+
+  .soon-tag {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.06);
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+  .drawer .tab-btn { display: flex; align-items: center; }
+  .soon-btn { color: var(--text-muted); }
+  .soon-btn:hover { background: rgba(255,255,255,0.05); }
+
+  .prize-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .prize-card-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .prize-card-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 3px 0 12px;
+  }
+  .prize-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+  }
+  .prize-row:first-of-type { border-top: none; }
+  .prize-amount {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    color: var(--amber);
+  }
+
+  .rule-section { margin-bottom: 22px; }
+  .rule-heading {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--amber);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .rule-section ol {
+    margin: 0;
+    padding-left: 20px;
+  }
+  .rule-section li {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .soon-panel-box {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text-muted);
+  }
+  .soon-panel-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .soon-panel-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 3px 10px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+  }
 
   .drawer .tab-btn {
     flex: none;
@@ -276,10 +519,11 @@
     justify-self: center;
   }
   .status-live { background: rgba(245,166,35,0.15); color: var(--amber); }
-  .status-finished { background: rgba(63,166,106,0.15); color: var(--win); }
+  .status-finished { background: rgba(63,179,127,0.15); color: var(--pitch-bright); }
   .status-not_started { background: rgba(255,255,255,0.06); color: var(--text-muted); }
   .win-score { color: var(--win); }
-  .loss-score { color: var(--text-muted); }
+  .fixture-club.win-score { font-weight: 700; }
+  .loss-score { color: var(--text); }
 
   .progress-item { margin-bottom: 16px; }
   .progress-label {
@@ -386,13 +630,37 @@
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <nav class="drawer" id="drawer">
   <div class="drawer-header">
-    <span class="drawer-title">Menu</span>
+    <div>
+      <div class="drawer-brand">SFFC Fantasy League</div>
+      <div class="drawer-season">Season 2026/27</div>
+    </div>
     <button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button>
   </div>
-  <button class="tab-btn active" data-tab="standings">Standings</button>
-  <button class="tab-btn" data-tab="results">Results</button>
-  <button class="tab-btn" data-tab="totw">Team of the Week</button>
-  <button class="tab-btn" data-tab="progress">Played vs Remaining</button>
+
+  <div class="drawer-group-label">This Season</div>
+  <button class="tab-btn active" data-tab="standings"><span class="tab-icon">🏆</span>Standings</button>
+  <button class="tab-btn" data-tab="results"><span class="tab-icon">⚔️</span>Results</button>
+  <button class="tab-btn" data-tab="totw"><span class="tab-icon">🏅</span>Team of the Week</button>
+  <button class="tab-btn" data-tab="progress"><span class="tab-icon">⏱️</span>Played vs Remaining</button>
+  <button class="tab-btn" data-tab="compare"><span class="tab-icon">⚖️</span>Compare Teams</button>
+  <button class="tab-btn soon-btn" data-soon="Captain Picks" data-soon-desc="Who each club captained, by gameweek."><span class="tab-icon">🎥</span>Captain Picks<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn soon-btn" data-soon="Submit Captain" data-soon-desc="Weekly captain submission, saved straight to the league's tracking sheet."><span class="tab-icon">✍️</span>Submit Captain<span class="soon-tag">Soon</span></button>
+
+  <div class="drawer-group-label">Club Performance</div>
+  <button class="tab-btn soon-btn" data-soon="Chip Usage" data-soon-desc="Which chip each club has played and when."><span class="tab-icon">💡</span>Chip Usage<span class="soon-tag">Soon</span></button>
+
+  <div class="drawer-group-label">League Intel</div>
+  <button class="tab-btn soon-btn" data-soon="Fixtures" data-soon-desc="The full season's matchups, gameweek by gameweek."><span class="tab-icon">📅</span>Fixtures<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn soon-btn" data-soon="Points Over Time" data-soon-desc="Manager points by gameweek — pick a week to narrow the table, or leave on All to see the full season."><span class="tab-icon">📈</span>Points Over Time<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn soon-btn" data-soon="Team Links" data-soon-desc="Each club's dedicated FPL mini-league page."><span class="tab-icon">🔗</span>Team Links<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn soon-btn" data-soon="Stats &amp; Records" data-soon-desc="Top and bottom scoring week counts, club by club."><span class="tab-icon">⭐</span>Stats &amp; Records<span class="soon-tag">Soon</span></button>
+
+  <div class="drawer-group-label">Player Intel (Live FPL)</div>
+  <button class="tab-btn soon-btn" data-soon="Player Ownership" data-soon-desc="Pick a club to pull its 6 managers' live FPL squads via their mini-league."><span class="tab-icon">👥</span>Player Ownership<span class="soon-tag">Soon</span></button>
+
+  <div class="drawer-group-label">Others</div>
+  <button class="tab-btn" data-tab="prizes"><span class="tab-icon">💰</span>Prizes</button>
+  <button class="tab-btn" data-tab="rulebook"><span class="tab-icon">📜</span>Rule Book</button>
 </nav>
 
 <main>
@@ -415,6 +683,156 @@
   <section id="progress" class="panel">
     <p class="panel-intro">Per club, how many of the 6 managers' starting XI players have kicked off this gameweek vs are still to come.</p>
     <div id="progressContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="compare" class="panel">
+    <p class="panel-intro">Pick a gameweek and a club &mdash; the opponent auto-fills from that week's actual fixture.</p>
+    <div class="compare-controls">
+      <select id="compareGW"></select>
+      <select id="compareClub"></select>
+      <span class="compare-vs">vs</span>
+      <span class="compare-opponent" id="compareOpponent">&mdash;</span>
+    </div>
+    <div id="compareContent"><div class="state-msg">Pick a gameweek and a club to compare.</div></div>
+  </section>
+
+  <section id="prizes" class="panel">
+    <p class="panel-intro">SFFC Fantasy League 2026-27 &mdash; bigger prize pool this season.</p>
+    <div class="prize-card">
+      <div class="prize-card-title">Phase Winners</div>
+      <div class="prize-card-sub">Top 3 teams &middot; each phase</div>
+      <div class="prize-row"><span>1st Prize</span><span class="prize-amount">Rs. 5,400</span></div>
+      <div class="prize-row"><span>2nd Prize</span><span class="prize-amount">Rs. 4,200</span></div>
+      <div class="prize-row"><span>3rd Prize</span><span class="prize-amount">Rs. 3,000</span></div>
+    </div>
+    <div class="prize-card">
+      <div class="prize-card-title">Team of the Week</div>
+      <div class="prize-card-sub">Highest gameweek score wins</div>
+      <div class="prize-row"><span>Prize</span><span class="prize-amount">Rs. 420</span></div>
+    </div>
+    <div class="prize-card">
+      <div class="prize-card-title">Champions League</div>
+      <div class="prize-card-sub">Top 8 from Phase 1 &middot; knockout from Quarter Finals</div>
+      <div class="prize-row"><span>Winner</span><span class="prize-amount">Rs. 1,800</span></div>
+      <div class="prize-row"><span>Runner-up</span><span class="prize-amount">Rs. 1,200</span></div>
+    </div>
+  </section>
+
+  <section id="rulebook" class="panel">
+    <p class="panel-intro">SFFC Fantasy League &mdash; Rules for the Game, 2026-27.</p>
+    <div class="rule-section">
+      <div class="rule-heading">A. Basic Rules</div>
+      <ol>
+        <li>There will be 20 teams consisting of 6 players each.</li>
+        <li>Each team will have the name of a current Premier League team, no repeats.</li>
+        <li>The team name cannot be changed once it is allocated.</li>
+        <li>Out of the 6 members, 1 member will be appointed as the Team Manager.</li>
+        <li>The manager communicates with the admins directly and no one else. Queries from members should go through the Manager.</li>
+        <li>Direct queries from members other than the Manager will not be entertained.</li>
+        <li>The assigned team manager can only be changed once in the entire season.</li>
+        <li>Each team will be provided with a passcode for captain submission.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">B. Fixtures</div>
+      <ol>
+        <li>The season is played in 2 halves of 19 GWs each &mdash; Phase 1: GW1&ndash;19, Phase 2: GW20&ndash;38 (GW names stay unchanged for the 2nd half).</li>
+        <li>Fixtures follow the real Premier League fixture list exactly.</li>
+        <li>Double and blank gameweeks don't affect SFFC-FL fixtures &mdash; the original fixture list is always followed.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">C. Entry Fee</div>
+      <ol>
+        <li>Entry fee is INR 400 per member, covering the full 38 GWs &mdash; no extra fee for Phase 2.</li>
+        <li>Paid at the start of the season, collected by the manager and transferred to the admins.</li>
+        <li>Payable via Google Pay, Paytm, or bank transfer.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">D. Team Name Allocation</div>
+      <ol>
+        <li>Allocated at a scheduled date/time, first come first basis, by token number after payment proof is shared.</li>
+        <li>No entry fees accepted before the scheduled time.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">E. Points System</div>
+      <ol>
+        <li>Every player registers on the official FPL site and creates a team.</li>
+        <li>One of the 6 members is selected as captain each GW; the manager submits this via passcode.</li>
+        <li>Captain points are doubled &mdash; choose wisely.</li>
+        <li>All 6 members' scores are added and matched against the opponent's total (minus any transfer-hit negatives).</li>
+        <li>Higher scoring team wins: 3 points for a win, 1 for a draw.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">F. Prizes</div>
+      <ol>
+        <li>Top 3 at the end of GW19 win Phase 1 cash prizes; same for GW38 and Phase 2.</li>
+        <li>1st: Rs. 5,400 &middot; 2nd: Rs. 4,200 &middot; 3rd: Rs. 3,000.</li>
+        <li>Highest-scoring team each GW is Team of the Week &mdash; Rs. 420 to the manager, shared with the team. Captain doubling isn't counted for this.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">G. Rules for Teams</div>
+      <ol>
+        <li>All members join the Classic SFFC-FL league.</li>
+        <li>The Team Manager creates an FPL classic league including all 6 members, named after their club followed by SFFC (e.g. "Chelsea (SFFC)").</li>
+        <li>No member may change their FPL name/team name without informing admins &mdash; unannounced changes are penalised.</li>
+        <li>Managers must share every member's details and the mini-league link once the team name is allotted.</li>
+        <li>Up to 2 members can be replaced per season, from Free Agents where available.</li>
+        <li>A replacement member cannot reuse a chip the old member already played.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">H. Captains</div>
+      <ol>
+        <li>A captain is set for every GW from the 6 members.</li>
+        <li>Each player must be captained at least twice per phase, completed by GW16, or the team is penalised.</li>
+        <li>Captain submission is only valid via the form &mdash; no text messages.</li>
+        <li>Deadline matches the official FPL deadline.</li>
+        <li>If no captain is submitted, the lowest scorer is auto-captained (not counted toward the minimum).</li>
+        <li>A submitted captain can be changed up to twice per phase by contacting admins before the deadline.</li>
+        <li>Keep a screenshot of the confirmation message &mdash; it's the only valid proof in a dispute.</li>
+        <li>The "Max Captain" chip (once per phase) auto-selects the highest scorer as captain; it's chosen via the Captain Submission Form and doesn't count toward the Captain Count.</li>
+        <li>Disputes are only heard between the FPL deadline and 1.5 hours after (kickoff of the first match), with valid proof.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">I. Penalties</div>
+      <ol>
+        <li>Missed captain-count criteria: 1st offence Yellow Card (-1), 2nd offence 2nd Yellow (-2), 3rd offence Red Card (-3).</li>
+        <li>FPL name changes: Warning, then Yellow (-1), 2nd Yellow (-2), Red Card (-3) for repeat offences.</li>
+        <li>Missing the minimum captain count deducts 3 points per missed count &mdash; from the league table, not that week's team score.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">J. Champions League</div>
+      <ol>
+        <li>Top 8 from Phase 1 qualify, entering directly at the Quarter Finals.</li>
+        <li>Seeding follows Phase 1 standings &mdash; no extra entry fee.</li>
+        <li>Winner: Rs. 1,800 &middot; Runner-up: Rs. 1,200.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">K. Phase Change</div>
+      <ol>
+        <li>Phase 1 ends GW19, Phase 2 starts GW20.</li>
+        <li>During the changeover, teams may make up to 12 transfers beyond their free transfers (up to -48 points, not otherwise penalised) split however the team likes.</li>
+        <li>Transfers beyond that follow normal FPL transfer-hit rules.</li>
+      </ol>
+    </div>
+    <div class="rule-section">
+      <div class="rule-heading">L. Admin Rights</div>
+      <ol>
+        <li>Admins may amend the rulebook at any time during the season, and will inform team managers of any changes.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="soon" class="panel">
+    <div id="soonContent"></div>
   </section>
 
 </main>
@@ -445,6 +863,22 @@
       panels.forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
+      closeDrawer();
+    });
+  });
+
+  const soonBtns = document.querySelectorAll('.soon-btn');
+  soonBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      document.getElementById('soon').classList.add('active');
+      document.getElementById('soonContent').innerHTML = `
+        <div class="soon-panel-box">
+          <div class="soon-panel-badge">Coming soon</div>
+          <div class="soon-panel-title">${btn.dataset.soon}</div>
+          <p>${btn.dataset.soonDesc}</p>
+        </div>`;
       closeDrawer();
     });
   });
@@ -497,11 +931,11 @@
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
         html += `<div class="fixture-row">
-          <div class="fixture-club home">${m.home.club}</div>
+          <div class="fixture-club home ${homeWinning ? 'win-score' : (awayWinning ? 'loss-score' : '')}">${m.home.club}</div>
           <div class="fixture-score ${homeWinning ? 'win-score' : (awayWinning ? 'loss-score' : '')} scoreboard-nums">${m.home.score}</div>
           <span class="status-badge status-${m.status}">${m.status === 'not_started' ? 'NOT STARTED' : m.status.toUpperCase()}</span>
           <div class="fixture-score ${awayWinning ? 'win-score' : (homeWinning ? 'loss-score' : '')} scoreboard-nums">${m.away.score}</div>
-          <div class="fixture-club away">${m.away.club}</div>
+          <div class="fixture-club away ${awayWinning ? 'win-score' : (homeWinning ? 'loss-score' : '')}">${m.away.club}</div>
         </div>`;
       });
       html += '</div>';
@@ -567,6 +1001,109 @@
     }
   }
 
+  const CLUBS = [
+    "Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea",
+    "Coventry City","Crystal Palace","Everton","Fulham","Hull City","Ipswich Town",
+    "Leeds","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Spurs","Sunderland"
+  ];
+
+  function populateCompareSelectors() {
+    const gwSelect = document.getElementById('compareGW');
+    for (let i = 1; i <= 38; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = 'GW' + i;
+      gwSelect.appendChild(opt);
+    }
+    const clubSelect = document.getElementById('compareClub');
+    CLUBS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      clubSelect.appendChild(opt);
+    });
+  }
+
+  function managerRowsHTML(managers) {
+    return managers.map(m => `
+      <div class="manager-row">
+        <div class="manager-names">
+          <div class="manager-team-name">${m.teamName}</div>
+          <div class="manager-real-name">${m.managerName}</div>
+        </div>
+        <div class="manager-pts">
+          <span class="gw scoreboard-nums">${m.gwPoints}</span>
+          <span class="total scoreboard-nums" style="color:var(--text-muted)">${m.totalPoints}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  async function loadCompare() {
+    const gw = document.getElementById('compareGW').value;
+    const club = document.getElementById('compareClub').value;
+    const opponentEl = document.getElementById('compareOpponent');
+    const content = document.getElementById('compareContent');
+    if (!gw || !club) return;
+
+    opponentEl.textContent = '…';
+    content.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+
+    try {
+      const data = await fetchJSON(`/api/compare?club=${encodeURIComponent(club)}&event=${gw}`);
+
+      if (data.blank || !data.opponent) {
+        opponentEl.textContent = '—';
+        content.innerHTML = '<div class="state-msg">No fixture for this club in GW' + gw + ' (blank gameweek).</div>';
+        return;
+      }
+
+      opponentEl.textContent = data.opponent.name;
+
+      const c = data.club;
+      const o = data.opponent;
+      const winner = c.gwScore > o.gwScore ? c.name : (o.gwScore > c.gwScore ? o.name : null);
+      const fixtureLine = winner
+        ? `GW${gw} fixture: ${winner} won ${Math.max(c.gwScore, o.gwScore)}-${Math.min(c.gwScore, o.gwScore)}.`
+        : `GW${gw} fixture: ${c.name} and ${o.name} drew ${c.gwScore}-${o.gwScore}.`;
+
+      const rows = [
+        ['Table Position', c.position, o.position],
+        ['Table Points', c.tablePoints, o.tablePoints],
+        ['Goal Difference', c.goalDifference, o.goalDifference],
+        ['Record (W-D-L)', c.record ? `${c.record.won}-${c.record.drawn}-${c.record.lost}` : '—', o.record ? `${o.record.won}-${o.record.drawn}-${o.record.lost}` : '—'],
+        ['This GW Points', c.gwScore, o.gwScore],
+        ['Club Pts (season total)', c.seasonTotal, o.seasonTotal],
+      ];
+
+      let html = `<div class="compare-fixture-line">${fixtureLine}</div>`;
+      html += `<table class="compare-stat-table"><thead><tr><th>Stat</th><th>${c.name}</th><th>${o.name}</th></tr></thead><tbody>`;
+      rows.forEach(([label, a, b]) => {
+        html += `<tr><td>${label}</td><td class="scoreboard-nums">${a}</td><td class="scoreboard-nums">${b}</td></tr>`;
+      });
+      html += '</tbody></table>';
+
+      html += `<div class="managers-behind-head">Managers Behind Each Club</div>
+        <div class="managers-behind-sub">Every fantasy manager owning each club, with their own points — same club, different results, since each manager's score depends on their own captain pick.</div>`;
+      html += `<div class="managers-cols">
+        <div>
+          <div class="managers-col-head">${c.name}</div>
+          <div class="managers-col-sub">${c.managers.length} managers</div>
+          ${managerRowsHTML(c.managers)}
+        </div>
+        <div>
+          <div class="managers-col-head">${o.name}</div>
+          <div class="managers-col-sub">${o.managers.length} managers</div>
+          ${managerRowsHTML(o.managers)}
+        </div>
+      </div>`;
+
+      content.innerHTML = html;
+    } catch (err) {
+      opponentEl.textContent = '—';
+      content.innerHTML = `<div class="state-msg error">Couldn't load comparison &mdash; ${err.message}</div>`;
+    }
+  }
+
   function loadAll() {
     loadStandings();
     loadResults();
@@ -575,6 +1112,10 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
+  populateCompareSelectors();
+  document.getElementById('compareGW').addEventListener('change', loadCompare);
+  document.getElementById('compareClub').addEventListener('change', loadCompare);
+  loadCompare();
   loadAll();
 </script>
 
