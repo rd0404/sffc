@@ -72,3 +72,23 @@
   from = "/api/run-snapshot-now"
   to = "/.netlify/functions/run-snapshot-now"
   status = 200
+
+[[redirects]]
+  from = "/api/latest-finalized"
+  to = "/.netlify/functions/latest-finalized"
+  status = 200
+
+[[redirects]]
+  from = "/api/squad-detail"
+  to = "/.netlify/functions/squad-detail"
+  status = 200
+
+[[redirects]]
+  from = "/api/player-ownership"
+  to = "/.netlify/functions/player-ownership"
+  status = 200
+
+[[redirects]]
+  from = "/api/progress-detail"
+  to = "/.netlify/functions/progress-detail"
+  status = 200
