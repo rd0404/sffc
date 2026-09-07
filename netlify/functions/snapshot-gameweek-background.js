@@ -1,17 +1,8 @@
-// Netlify Scheduled Background Function.
-// Runs automatically on the schedule set in netlify.toml (hourly) — no
-// manual trigger needed. Every run:
-//   1. Checks gameweeks 1..currentEvent in order.
-//   2. Skips any gameweek already snapshotted (idempotent).
-//   3. Skips any gameweek whose real fixtures aren't ALL finished yet.
-//   4. For the first gameweek that's finished and not yet snapshotted,
-//      computes each team's exact score via manager history and stores
-//      the match results under key "gw-<event>".
-
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { computeMatchResults } = require("../../lib/matchResults");
+const { getClubScoreWithCaptain } = require("../../lib/managerData");
 const { resultsStore } = require("../../lib/blobStore");
 
 exports.handler = async () => {
@@ -19,13 +10,13 @@ exports.handler = async () => {
   const bootstrap = await fplClient.getBootstrap();
   const currentEvent = fplClient.getCurrentEvent(bootstrap);
 
-  const entryIdsByClub = {};
-  await Promise.all(
-    teamsConfig.map(async (team) => {
-      const data = await fplClient.getLeagueStandings(team.leagueId);
-      entryIdsByClub[team.fplClubId] = data.standings.results.map((m) => m.entry);
-    })
-  );
+  const standingsCache = {};
+  async function getStandings(team) {
+    if (!standingsCache[team.club]) {
+      standingsCache[team.club] = await fplClient.getLeagueStandings(team.leagueId);
+    }
+    return standingsCache[team.club];
+  }
 
   for (let event = 1; event <= currentEvent; event++) {
     let existing = null;
@@ -45,14 +36,8 @@ exports.handler = async () => {
 
     const clubScore = {};
     for (const team of teamsConfig) {
-      const entryIds = entryIdsByClub[team.fplClubId];
-      let score = 0;
-      for (const entryId of entryIds) {
-        const history = await fplClient.getEntryHistory(entryId);
-        const gwRow = history.current.find((h) => h.event === event);
-        score += gwRow ? gwRow.points : 0;
-      }
-      clubScore[team.fplClubId] = score;
+      const result = await getClubScoreWithCaptain(team, event, currentEvent, getStandings);
+      clubScore[team.fplClubId] = result.total;
     }
 
     const results = computeMatchResults(teamsConfig, clubScore, opponentOf);
