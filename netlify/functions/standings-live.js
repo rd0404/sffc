@@ -1,3 +1,8 @@
+// GET /.netlify/functions/standings-live?phase=1|2
+// Same as /api/standings but scoped to one phase, plus the current
+// gameweek's live scores folded in as provisional — only if the current
+// gameweek falls within the requested phase.
+
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
@@ -5,9 +10,14 @@ const { computeMatchResults } = require("../../lib/matchResults");
 const { getClubScoreWithCaptain } = require("../../lib/managerData");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
+const { getPhaseRange, getPhaseForEvent } = require("../../lib/phase");
 
-exports.handler = async () => {
+exports.handler = async (evt) => {
   try {
+    const params = evt.queryStringParameters || {};
+    const phase = params.phase ? parseInt(params.phase, 10) : 1;
+    const [start, end] = getPhaseRange(phase);
+
     const store = resultsStore();
     const { blobs } = await store.list({ prefix: "gw-" });
 
@@ -20,10 +30,10 @@ exports.handler = async () => {
       } catch (_) {
         continue;
       }
-      if (data && data.results) {
+      if (data && data.results && data.event >= start && data.event <= end) {
         allResults.push(data.results);
-        snapshottedEvents.add(data.event);
       }
+      if (data) snapshottedEvents.add(data.event);
     }
 
     const bootstrap = await fplClient.getBootstrap();
@@ -31,7 +41,7 @@ exports.handler = async () => {
 
     let provisionalEvent = null;
 
-    if (!snapshottedEvents.has(currentEvent)) {
+    if (getPhaseForEvent(currentEvent) === phase && !snapshottedEvents.has(currentEvent)) {
       const fixtures = await fplClient.getFixtures(currentEvent);
       const { opponentOf } = buildFixtureLookups(fixtures);
 
@@ -61,7 +71,7 @@ exports.handler = async () => {
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ standings, provisionalEvent }),
+      body: JSON.stringify({ standings, provisionalEvent, phase }),
     };
   } catch (err) {
     return {
