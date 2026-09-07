@@ -1,13 +1,9 @@
 [build]
   functions = "netlify/functions"
 
-# Runs once an hour, checks for any newly-finished gameweek, and snapshots
-# its results into Netlify Blobs. No manual trigger needed.
 [functions."snapshot-gameweek-background"]
   schedule = "@hourly"
 
-# Optional but handy: lets you call /api/gameweek instead of the longer
-# default /.netlify/functions/gameweek path.
 [[redirects]]
   from = "/api/gameweek"
   to = "/.netlify/functions/gameweek"
@@ -31,4 +27,9 @@
 [[redirects]]
   from = "/api/compare"
   to = "/.netlify/functions/compare"
+  status = 200
+
+[[redirects]]
+  from = "/api/team-of-week"
+  to = "/.netlify/functions/team-of-week"
   status = 200
