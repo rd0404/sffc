@@ -1,14 +1,7 @@
-// Netlify Function — GET /.netlify/functions/gameweek?event=N
-//
-// Returns the given gameweek's (or current, if omitted) fixture-derived
-// matchups and scores for all 20 SFFC teams. Live event_total is used for
-// the current gameweek; a past gameweek's scores come from each manager's
-// own history, which never changes once that gameweek is over.
-
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
-const { getClubScoreForEvent } = require("../../lib/managerData");
+const { getClubScoreWithCaptain } = require("../../lib/managerData");
 
 exports.handler = async (evt) => {
   try {
@@ -28,10 +21,10 @@ exports.handler = async (evt) => {
       return standingsCache[team.club];
     }
 
-    const scoreByClub = {};
+    const resultByClub = {};
     await Promise.all(
       teamsConfig.map(async (team) => {
-        scoreByClub[team.fplClubId] = await getClubScoreForEvent(
+        resultByClub[team.fplClubId] = await getClubScoreWithCaptain(
           team,
           requestedEvent,
           currentEvent,
@@ -55,10 +48,22 @@ exports.handler = async (evt) => {
 
       const homeTeam = teamsConfig.find((t) => t.fplClubId === homeId);
       const awayTeam = teamsConfig.find((t) => t.fplClubId === awayId);
+      const homeResult = resultByClub[homeId];
+      const awayResult = resultByClub[awayId];
 
       matches.push({
-        home: { club: homeTeam.club, score: scoreByClub[homeId] },
-        away: { club: awayTeam.club, score: scoreByClub[awayId] },
+        home: {
+          club: homeTeam.club,
+          score: homeResult.total,
+          captainEntry: homeResult.captainEntry,
+          usedMaxChip: homeResult.usedMaxChip,
+        },
+        away: {
+          club: awayTeam.club,
+          score: awayResult.total,
+          captainEntry: awayResult.captainEntry,
+          usedMaxChip: awayResult.usedMaxChip,
+        },
         status: fixtureStatusOf[homeId] || "not_started",
       });
     }
