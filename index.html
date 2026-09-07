@@ -620,6 +620,47 @@
   .results-table .results-gw-cell { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
   .results-table .results-vs-cell { color: var(--text-faint); font-size: 12px; text-align: center; }
 
+  .margin-callouts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 600px) {
+    .margin-callouts { grid-template-columns: 1fr; }
+  }
+  .margin-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .margin-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .margin-teams {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .margin-amt {
+    color: var(--amber-bright);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    margin: 0 6px;
+  }
+  .margin-score {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
   .prize-card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -1451,7 +1492,36 @@
       const filtered = data.matches.filter(m =>
         !search || m.home.club.toLowerCase().includes(search) || m.away.club.toLowerCase().includes(search)
       );
-      let html = '<div class="table-scroll"><table class="results-table"><thead><tr><th>GW</th><th>Home</th><th class="num">Pts</th><th></th><th class="num">Pts</th><th>Away</th></tr></thead><tbody>';
+
+      // Biggest/narrowest win margin, computed across ALL of this
+      // gameweek's matches (not affected by the team search filter).
+      const decisive = data.matches
+        .filter(m => m.home.score !== m.away.score)
+        .map(m => {
+          const winner = m.home.score > m.away.score ? m.home : m.away;
+          const loser = m.home.score > m.away.score ? m.away : m.home;
+          return { winner: winner.club, loser: loser.club, winnerScore: winner.score, loserScore: loser.score, margin: Math.abs(m.home.score - m.away.score) };
+        });
+
+      let html = '';
+      if (decisive.length) {
+        const biggest = decisive.reduce((a, b) => (b.margin > a.margin ? b : a), decisive[0]);
+        const narrowest = decisive.reduce((a, b) => (b.margin < a.margin ? b : a), decisive[0]);
+        html += `<div class="margin-callouts">
+          <div class="margin-card">
+            <div class="margin-label">Biggest Win \u2014 GW${data.event}</div>
+            <div class="margin-teams">${biggest.winner} <span class="margin-amt scoreboard-nums">+${biggest.margin}</span> ${biggest.loser}</div>
+            <div class="margin-score scoreboard-nums">${biggest.winnerScore} \u2013 ${biggest.loserScore}</div>
+          </div>
+          <div class="margin-card">
+            <div class="margin-label">Narrowest Win \u2014 GW${data.event}</div>
+            <div class="margin-teams">${narrowest.winner} <span class="margin-amt scoreboard-nums">+${narrowest.margin}</span> ${narrowest.loser}</div>
+            <div class="margin-score scoreboard-nums">${narrowest.winnerScore} \u2013 ${narrowest.loserScore}</div>
+          </div>
+        </div>`;
+      }
+
+      html += '<div class="table-scroll"><table class="results-table"><thead><tr><th>GW</th><th>Home</th><th class="num">Pts</th><th></th><th class="num">Pts</th><th>Away</th></tr></thead><tbody>';
       if (!filtered.length) {
         html += '<tr><td colspan="6"><div class="state-msg">No matching teams.</div></td></tr>';
       }
