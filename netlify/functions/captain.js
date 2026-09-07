@@ -13,6 +13,7 @@ const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { getCaptainRecord, setCaptainRecord } = require("../../lib/captainStore");
 const teamPasskeys = require("../../lib/teamPasskeys");
+const { getPhaseRange } = require("../../lib/phase");
 
 async function getDeadlineInfo(gw) {
   const bootstrap = await fplClient.getBootstrap();
@@ -21,6 +22,17 @@ async function getDeadlineInfo(gw) {
   const deadlineTime = ev.deadline_time;
   const locked = Date.now() >= new Date(deadlineTime).getTime();
   return { deadlineTime, locked };
+}
+
+async function isMaxChipUsedElsewhereInPhase(club, gw) {
+  const phase = gw <= 19 ? 1 : 2;
+  const [start, end] = getPhaseRange(phase);
+  for (let e = start; e <= end; e++) {
+    if (e === gw) continue;
+    const rec = await getCaptainRecord(club, e);
+    if (rec && rec.maxChip) return true;
+  }
+  return false;
 }
 
 exports.handler = async (event) => {
@@ -69,6 +81,14 @@ exports.handler = async (event) => {
 
       let record;
       if (body.maxChip) {
+        const alreadyUsed = await isMaxChipUsedElsewhereInPhase(club, gw);
+        if (alreadyUsed) {
+          return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Max Captain chip has already been used this phase for this club" }),
+          };
+        }
         record = { maxChip: true, submittedAt: new Date().toISOString() };
       } else {
         if (!body.managerEntry) {
@@ -130,11 +150,20 @@ exports.handler = async (event) => {
 
     const record = await getCaptainRecord(club, gw);
     const { deadlineTime, locked } = await getDeadlineInfo(gw);
+    const maxChipUsedElsewhere = await isMaxChipUsedElsewhereInPhase(club, gw);
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ club, event: gw, managers, record: record || null, deadlineTime, locked }),
+      body: JSON.stringify({
+        club,
+        event: gw,
+        managers,
+        record: record || null,
+        deadlineTime,
+        locked,
+        maxChipAvailable: !maxChipUsedElsewhere,
+      }),
     };
   } catch (err) {
     return {
