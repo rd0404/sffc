@@ -1679,12 +1679,21 @@
 
   function populateSubmitClubSelect() {
     const clubSelect = document.getElementById('submitClub');
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Select club\u2026';
+    clubSelect.appendChild(blank);
     CLUBS.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c;
       opt.textContent = c;
       clubSelect.appendChild(opt);
     });
+  }
+
+  function formatDeadline(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
   async function loadSubmitCaptainForm() {
@@ -1700,12 +1709,28 @@
       const data = await fetchJSON(`/api/captain?club=${encodeURIComponent(club)}&event=${gw}`);
       const currentEntry = data.record && data.record.managerEntry ? data.record.managerEntry : null;
       const currentMaxChip = !!(data.record && data.record.maxChip);
+      const deadlineStr = formatDeadline(data.deadlineTime);
 
-      let statusLine = 'No captain submitted yet for this gameweek.';
-      if (currentMaxChip) statusLine = 'Currently using the Max Captain chip.';
+      if (data.locked) {
+        let lockedLine = 'No captain was submitted for this gameweek \u2014 the lowest scorer was auto-captained.';
+        if (currentMaxChip) lockedLine = 'Max Captain chip was used this gameweek.';
+        else if (currentEntry) {
+          const m = data.managers.find(mgr => mgr.entry === currentEntry);
+          lockedLine = `Captain was: ${m ? m.managerName + ' (' + m.teamName + ')' : 'Unknown'}.`;
+        }
+        el.innerHTML = `<div class="submit-form">
+          <div class="soon-panel-badge" style="margin-bottom:10px;">Locked</div>
+          <div class="submit-current">GW${gw}'s deadline (${deadlineStr}) has passed \u2014 submissions are closed, matching the real FPL deadline.</div>
+          <div class="submit-current" style="margin-top:10px;">${lockedLine}</div>
+        </div>`;
+        return;
+      }
+
+      let statusLine = `Deadline: ${deadlineStr}. No captain submitted yet for this gameweek.`;
+      if (currentMaxChip) statusLine = `Deadline: ${deadlineStr}. Currently using the Max Captain chip.`;
       else if (currentEntry) {
         const m = data.managers.find(mgr => mgr.entry === currentEntry);
-        statusLine = `Currently submitted: ${m ? m.teamName : 'Unknown'}.`;
+        statusLine = `Deadline: ${deadlineStr}. Currently submitted: ${m ? m.managerName : 'Unknown'}.`;
       }
 
       let html = `<div class="submit-form">
@@ -1715,8 +1740,8 @@
         html += `<label class="submit-option">
           <input type="radio" name="captainChoice" value="${m.entry}" ${currentEntry === m.entry ? 'checked' : ''} />
           <div>
-            <div class="submit-option-label">${m.teamName}</div>
-            <div class="submit-option-sub">${m.managerName}</div>
+            <div class="submit-option-label">${m.managerName}</div>
+            <div class="submit-option-sub">${m.teamName}</div>
           </div>
         </label>`;
       });
