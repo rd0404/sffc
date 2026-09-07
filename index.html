@@ -2034,7 +2034,7 @@
       data.chips.forEach(c => {
         html += `<div class="fplchip-row">
           <span class="fplchip-label">${c.label}</span>
-          <span class="fplchip-count scoreboard-nums">${c.count} time${c.count === 1 ? '' : 's'}</span>
+          <span class="fplchip-count scoreboard-nums">${c.count}/${data.totalManagers}</span>
         </div>`;
       });
       html += '</div>';
