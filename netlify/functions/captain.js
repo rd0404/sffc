@@ -1,11 +1,27 @@
-// GET  ?club=Arsenal&event=3  -> the club's 6 managers + current submission.
+// Netlify Function — /.netlify/functions/captain
+//
+// GET  ?club=Arsenal&event=3  -> the club's 6 managers + current submission
+//                                + whether this gameweek's deadline has passed.
 // POST { club, event, managerEntry, passkey } -> submit a manual captain pick.
 // POST { club, event, maxChip: true, passkey } -> use the Max Captain chip.
+//
+// Submissions lock at the SAME deadline as the real FPL gameweek deadline
+// (bootstrap-static's deadline_time) — once it passes, no more changes,
+// matching how FPL itself locks team changes before kickoff.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { getCaptainRecord, setCaptainRecord } = require("../../lib/captainStore");
 const teamPasskeys = require("../../lib/teamPasskeys");
+
+async function getDeadlineInfo(gw) {
+  const bootstrap = await fplClient.getBootstrap();
+  const ev = bootstrap.events.find((e) => e.id === gw);
+  if (!ev) return { deadlineTime: null, locked: false };
+  const deadlineTime = ev.deadline_time;
+  const locked = Date.now() >= new Date(deadlineTime).getTime();
+  return { deadlineTime, locked };
+}
 
 exports.handler = async (event) => {
   try {
@@ -28,6 +44,17 @@ exports.handler = async (event) => {
           statusCode: 404,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ error: `Unknown club '${club}'` }),
+        };
+      }
+
+      const { locked, deadlineTime } = await getDeadlineInfo(gw);
+      if (locked) {
+        return {
+          statusCode: 403,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            error: `GW${gw}'s deadline (${deadlineTime}) has passed — captain submissions are locked for this gameweek`,
+          }),
         };
       }
 
@@ -72,6 +99,7 @@ exports.handler = async (event) => {
       };
     }
 
+    // GET
     const params = event.queryStringParameters || {};
     const club = params.club;
     const gw = params.event ? parseInt(params.event, 10) : null;
@@ -101,11 +129,12 @@ exports.handler = async (event) => {
     }));
 
     const record = await getCaptainRecord(club, gw);
+    const { deadlineTime, locked } = await getDeadlineInfo(gw);
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ club, event: gw, managers, record: record || null }),
+      body: JSON.stringify({ club, event: gw, managers, record: record || null, deadlineTime, locked }),
     };
   } catch (err) {
     return {
