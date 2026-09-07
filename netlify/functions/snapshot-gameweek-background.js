@@ -1,3 +1,11 @@
+// Netlify Scheduled Background Function.
+// Runs automatically on the schedule set in netlify.toml (hourly). Every
+// run checks gameweeks 1..currentEvent, skips any already snapshotted or
+// not yet fully finished, and computes + stores EVERY newly-finished
+// gameweek it finds — not just one — so a bulk change (like a captain
+// backfill that clears several snapshots at once) catches up in a single
+// run instead of trickling in one gameweek per hour.
+
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
@@ -17,6 +25,8 @@ exports.handler = async () => {
     }
     return standingsCache[team.club];
   }
+
+  let snapshotted = 0;
 
   for (let event = 1; event <= currentEvent; event++) {
     let existing = null;
@@ -43,6 +53,8 @@ exports.handler = async () => {
     const results = computeMatchResults(teamsConfig, clubScore, opponentOf);
 
     await store.setJSON(`gw-${event}`, { event, results });
-    break;
+    snapshotted += 1;
   }
+
+  return { snapshotted };
 };
