@@ -744,6 +744,11 @@
     padding-left: 4px;
   }
 
+  .ownership-table .club-cell { font-weight: 600; }
+  .ownership-realclub { color: var(--text-faint); font-size: 12.5px; }
+  .ownership-count { color: var(--amber-bright); font-weight: 700; white-space: nowrap; }
+  .ownership-owners { color: var(--text-muted); font-size: 12px; }
+
   .prize-card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -1734,6 +1739,10 @@
   function populateOwnershipSelectors() {
     populateGWSelect('ownershipGW');
     const clubSelect = document.getElementById('ownershipClub');
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Select team\u2026';
+    clubSelect.appendChild(blank);
     CLUBS.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c;
@@ -1742,20 +1751,50 @@
     });
   }
 
+  function aggregateOwnership(managers) {
+    const map = {};
+    managers.forEach(m => {
+      const all = [...m.starters, ...m.bench];
+      const seen = new Set();
+      all.forEach(p => {
+        if (seen.has(p.name)) return;
+        seen.add(p.name);
+        const key = p.name + '|' + (p.realClub || '');
+        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, owners: [] };
+        map[key].count += 1;
+        map[key].owners.push(m.teamName);
+      });
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }
+
   async function loadOwnership() {
     const gw = document.getElementById('ownershipGW').value;
     const club = document.getElementById('ownershipClub').value;
     const el = document.getElementById('ownershipContent');
     if (!gw || !club) {
-      el.innerHTML = '<div class="state-msg">Pick a gameweek and a club.</div>';
+      el.innerHTML = '<div class="state-msg">Pick a gameweek and a team.</div>';
       return;
     }
     el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/squad-detail?club=${encodeURIComponent(club)}&event=${gw}`);
-      el.innerHTML = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>` + squadManagersHTML(data.managers);
+      const totalManagers = data.managers.length;
+      const rows = aggregateOwnership(data.managers);
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
+      html += '<div class="table-scroll"><table class="ownership-table"><thead><tr><th>Player</th><th>Club</th><th class="num">Owned By</th><th>Managers</th></tr></thead><tbody>';
+      rows.forEach(r => {
+        html += `<tr>
+          <td class="club-cell">${r.name}</td>
+          <td class="ownership-realclub">${r.realClub || ''}</td>
+          <td class="num scoreboard-nums ownership-count">${r.count}/${totalManagers}</td>
+          <td class="ownership-owners">${r.owners.join(', ')}</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+      el.innerHTML = html;
     } catch (err) {
-      el.innerHTML = `<div class="state-msg error">Couldn't load squads &mdash; ${err.message}</div>`;
+      el.innerHTML = `<div class="state-msg error">Couldn't load ownership &mdash; ${err.message}</div>`;
     }
   }
 
