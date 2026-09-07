@@ -1,15 +1,21 @@
-// Netlify Function — GET /.netlify/functions/progress
-// (same logic as api/progress.js, adapted to Netlify's handler signature)
+// Netlify Function — GET /.netlify/functions/progress?event=N
+//
+// For every SFFC team, counts how many of the 6 managers' STARTING XI
+// players have played vs are still to play in the given (or current)
+// gameweek. Works for past gameweeks too.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 
-exports.handler = async (event, context) => {
+exports.handler = async (evt) => {
   try {
+    const params = evt.queryStringParameters || {};
     const bootstrap = await fplClient.getBootstrap();
-    const gw = fplClient.getCurrentEvent(bootstrap);
-    const fixtures = await fplClient.getFixtures(gw);
+    const currentEvent = fplClient.getCurrentEvent(bootstrap);
+    const requestedEvent = params.event ? parseInt(params.event, 10) : currentEvent;
+
+    const fixtures = await fplClient.getFixtures(requestedEvent);
     const { fixtureStatusOf } = buildFixtureLookups(fixtures);
 
     const clubOfElement = {};
@@ -26,7 +32,7 @@ exports.handler = async (event, context) => {
         let left = 0;
 
         const allPicks = await Promise.all(
-          entryIds.map((id) => fplClient.getEntryPicks(id, gw))
+          entryIds.map((id) => fplClient.getEntryPicks(id, requestedEvent))
         );
 
         for (const picksData of allPicks) {
@@ -54,7 +60,11 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event: gw, teams: teamsOut }),
+      body: JSON.stringify({
+        event: requestedEvent,
+        isCurrent: requestedEvent === currentEvent,
+        teams: teamsOut,
+      }),
     };
   } catch (err) {
     return {
