@@ -1204,16 +1204,18 @@
   </section>
 
   <section id="progress" class="panel">
-    <p class="panel-intro">Per club, how many of the 6 managers' starting XI players have kicked off this gameweek vs are still to come.</p>
-    <div class="filter-row">
+    <p class="panel-intro">Pick a gameweek and a team &mdash; the opponent auto-fills from that week's actual fixture, so you can see who has more players still to come in.</p>
+    <div class="compare-controls">
       <select id="progressPhase">
         <option value="1">Phase 1</option>
         <option value="2">Phase 2</option>
       </select>
-      <select id="progressGW"><option value="">Current GW</option></select>
-      <input type="text" id="progressSearch" placeholder="Search team&hellip;" />
+      <select id="progressGW"></select>
+      <select id="progressTeam"></select>
+      <span class="compare-vs">vs</span>
+      <span class="compare-opponent" id="progressOpponent">&mdash;</span>
     </div>
-    <div id="progressContent"><div class="state-msg">Loading&hellip;</div></div>
+    <div id="progressContent"><div class="state-msg">Pick a gameweek and a team.</div></div>
   </section>
 
   <section id="ownership" class="panel">
@@ -1682,20 +1684,46 @@
       </div>`).join('');
   }
 
+  function populateProgressTeamSelect() {
+    const teamSelect = document.getElementById('progressTeam');
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Select team\u2026';
+    teamSelect.appendChild(blank);
+    CLUBS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      teamSelect.appendChild(opt);
+    });
+  }
+
+  function progressSideHTML(t, sideId) {
+    const pct = Math.round((t.playersPlayed / t.totalStarters) * 100);
+    return `<div class="progress-item">
+      <div class="progress-label">
+        <button class="progress-club-btn" data-club="${t.club}" data-side="${sideId}">${t.club}</button>
+        <span class="progress-count scoreboard-nums">${t.playersPlayed} played &middot; ${t.playersLeft} left</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-detail" id="progress-detail-${sideId}"></div>
+    </div>`;
+  }
+
   const progressDetailOpen = {};
 
-  async function toggleProgressDetail(club, gwUsed) {
-    const el = document.getElementById('progress-detail-' + club.replace(/[^a-zA-Z0-9]/g, ''));
+  async function toggleProgressDetail(club, sideId, gw) {
+    const el = document.getElementById('progress-detail-' + sideId);
     if (!el) return;
-    if (progressDetailOpen[club]) {
-      progressDetailOpen[club] = false;
+    if (progressDetailOpen[sideId]) {
+      progressDetailOpen[sideId] = false;
       el.innerHTML = '';
       return;
     }
-    progressDetailOpen[club] = true;
+    progressDetailOpen[sideId] = true;
     el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
-      const data = await fetchJSON(`/api/squad-detail?club=${encodeURIComponent(club)}&event=${gwUsed}`);
+      const data = await fetchJSON(`/api/squad-detail?club=${encodeURIComponent(club)}&event=${gw}`);
       el.innerHTML = squadManagersHTML(data.managers);
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load detail &mdash; ${err.message}</div>`;
@@ -1704,32 +1732,45 @@
 
   async function loadProgress() {
     const el = document.getElementById('progressContent');
+    const opponentEl = document.getElementById('progressOpponent');
     const gw = document.getElementById('progressGW').value;
-    const search = document.getElementById('progressSearch').value.trim().toLowerCase();
+    const team = document.getElementById('progressTeam').value;
+
+    if (!gw || !team) {
+      opponentEl.textContent = '\u2014';
+      el.innerHTML = '<div class="state-msg">Pick a gameweek and a team.</div>';
+      return;
+    }
+
+    opponentEl.textContent = '\u2026';
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
-      const url = gw ? `/api/progress?event=${gw}` : '/api/progress';
-      const data = await fetchJSON(url);
-      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
-      const filtered = data.teams.filter(t => !search || t.club.toLowerCase().includes(search));
-      const sorted = [...filtered].sort((a, b) => b.playersPlayed - a.playersPlayed);
-      if (!sorted.length) {
-        html += '<div class="state-msg">No matching teams.</div>';
+      const [gwData, progressData] = await Promise.all([
+        fetchJSON(`/api/gameweek?event=${gw}`),
+        fetchJSON(`/api/progress?event=${gw}`),
+      ]);
+
+      const match = gwData.matches.find(m => m.home.club === team || m.away.club === team);
+      if (!match) {
+        opponentEl.textContent = '\u2014';
+        el.innerHTML = `<div class="state-msg">No fixture for ${team} in GW${gw} (blank gameweek).</div>`;
+        return;
       }
-      sorted.forEach(t => {
-        const pct = Math.round((t.playersPlayed / t.totalStarters) * 100);
-        const safeId = 'progress-detail-' + t.club.replace(/[^a-zA-Z0-9]/g, '');
-        html += `<div class="progress-item">
-          <div class="progress-label">
-            <button class="progress-club-btn" data-club="${t.club}" data-gw="${data.event}">${t.club}</button>
-            <span class="progress-count scoreboard-nums">${t.playersPlayed} played &middot; ${t.playersLeft} left</span>
-          </div>
-          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-          <div class="progress-detail" id="${safeId}"></div>
-        </div>`;
-      });
+      const opponentClub = match.home.club === team ? match.away.club : match.home.club;
+      opponentEl.textContent = opponentClub;
+
+      const teamData = progressData.teams.find(t => t.club === team);
+      const opponentData = progressData.teams.find(t => t.club === opponentClub);
+
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${gwData.event}</div>`;
+      html += '<div class="managers-cols">';
+      html += `<div>${progressSideHTML(teamData, 'team')}</div>`;
+      html += `<div>${progressSideHTML(opponentData, 'opponent')}</div>`;
+      html += '</div>';
+
       el.innerHTML = html;
       el.querySelectorAll('.progress-club-btn').forEach(btn => {
-        btn.addEventListener('click', () => toggleProgressDetail(btn.dataset.club, btn.dataset.gw));
+        btn.addEventListener('click', () => toggleProgressDetail(btn.dataset.club, btn.dataset.side, gw));
       });
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load progress &mdash; ${err.message}</div>`;
@@ -1782,13 +1823,12 @@
       const totalManagers = data.managers.length;
       const rows = aggregateOwnership(data.managers);
       let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
-      html += '<div class="table-scroll"><table class="ownership-table"><thead><tr><th>Player</th><th>Club</th><th class="num">Owned By</th><th>Managers</th></tr></thead><tbody>';
+      html += '<div class="table-scroll"><table class="ownership-table"><thead><tr><th>Player</th><th>Club</th><th class="num">Owned By</th></tr></thead><tbody>';
       rows.forEach(r => {
         html += `<tr>
           <td class="club-cell">${r.name}</td>
           <td class="ownership-realclub">${r.realClub || ''}</td>
           <td class="num scoreboard-nums ownership-count">${r.count}/${totalManagers}</td>
-          <td class="ownership-owners">${r.owners.join(', ')}</td>
         </tr>`;
       });
       html += '</tbody></table></div>';
@@ -2247,13 +2287,14 @@
   populateCompareSelectors();
   populateSubmitClubSelect();
   populateOwnershipSelectors();
+  populateProgressTeamSelect();
 
   document.getElementById('standingsPhase').addEventListener('change', loadStandings);
   document.getElementById('resultsGW').addEventListener('change', loadResults);
   document.getElementById('resultsSearch').addEventListener('input', loadResults);
   document.getElementById('totwGW').addEventListener('change', loadTeamOfWeek);
   document.getElementById('progressGW').addEventListener('change', loadProgress);
-  document.getElementById('progressSearch').addEventListener('input', loadProgress);
+  document.getElementById('progressTeam').addEventListener('change', loadProgress);
   document.getElementById('compareGW').addEventListener('change', loadCompare);
   document.getElementById('compareClub').addEventListener('change', loadCompare);
   document.getElementById('captainPicksGW').addEventListener('change', loadCaptainPicks);
