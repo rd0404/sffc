@@ -84,6 +84,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/fpl-chips"
+  to = "/.netlify/functions/fpl-chips"
+  status = 200
+
+[[redirects]]
   from = "/api/player-ownership"
   to = "/.netlify/functions/player-ownership"
   status = 200
