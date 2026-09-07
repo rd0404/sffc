@@ -868,9 +868,69 @@
   }
   .state-msg.error { color: var(--loss); }
 
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   @media (max-width: 600px) {
+    body { overflow-x: hidden; }
+    main { padding: 16px 14px 50px; }
+    h1 { font-size: 20px; }
+    .season-tag { font-size: 12px; }
+
     .fixture-row { grid-template-columns: 1fr auto 1fr; grid-template-areas: "home score away" "homebadge . awaybadge"; }
-    h1 { font-size: 21px; }
+
+    .filter-row { gap: 8px; }
+    .filter-row select, .filter-row input { font-size: 13px; padding: 8px; }
+    .filter-row input { min-width: 0; width: 100%; flex-basis: 100%; }
+
+    table th, table td { padding: 9px 6px; font-size: 12.5px; }
+    .compare-stat-table th, .compare-stat-table td { padding: 8px 6px; font-size: 12.5px; }
+    .stats-table th, .stats-table td { padding: 8px 6px; font-size: 12.5px; }
+
+    .totw-winner { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .totw-winner-score { font-size: 26px; }
+
+    .captain-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .captain-row-header { flex-direction: row; align-items: center; }
+    .captain-header-names { gap: 14px; }
+    .captain-header-names span, .captain-manager-name, .captain-team-name { min-width: 0; text-align: left; }
+    .captain-names { gap: 14px; }
+
+    .real-fixture-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .real-fixture-meta { flex-wrap: wrap; }
+
+    .chip-usage-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .team-link-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .team-link-btn { align-self: stretch; text-align: center; }
+
+    .manager-pts { gap: 6px; font-size: 12px; }
+    .manager-team-name, .manager-real-name { max-width: 55vw; }
+
+    .prize-row { font-size: 13px; }
+
+    .compare-controls { gap: 8px; }
+    .compare-opponent { flex: 1; text-align: center; }
+
+    .submit-option-label, .submit-option-sub { word-break: break-word; }
   }
 </style>
 </head>
@@ -1274,7 +1334,7 @@
       if (data.provisionalEvent) {
         html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
       }
-      html += '<table><thead><tr><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">Pts</th></tr></thead><tbody>';
+      html += '<div class="table-scroll"><table><thead><tr><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">Pts</th></tr></thead><tbody>';
       data.standings.forEach((t, i) => {
         html += `<tr>
           <td class="rank-cell num scoreboard-nums">${i + 1}</td>
@@ -1287,7 +1347,7 @@
           <td class="num pts-cell scoreboard-nums">${t.points}</td>
         </tr>`;
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
       el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load standings &mdash; ${err.message}</div>`;
@@ -1555,11 +1615,11 @@
     el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/stats-records?phase=${phase}`);
-      let html = '<table class="stats-table"><thead><tr><th>Club</th><th class="num">Top-scoring weeks</th><th class="num">Bottom-scoring weeks</th></tr></thead><tbody>';
+      let html = '<div class="table-scroll"><table class="stats-table"><thead><tr><th>Club</th><th class="num">Top-scoring weeks</th><th class="num">Bottom-scoring weeks</th></tr></thead><tbody>';
       data.teams.forEach(t => {
         html += `<tr><td>${t.club}</td><td class="num scoreboard-nums">${t.topWeeks}</td><td class="num scoreboard-nums">${t.bottomWeeks}</td></tr>`;
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
       el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load stats &mdash; ${err.message}</div>`;
@@ -1775,11 +1835,11 @@
       ];
 
       let html = `<div class="compare-fixture-line">${fixtureLine}</div>`;
-      html += `<table class="compare-stat-table"><thead><tr><th>Stat</th><th>${c.name}</th><th>${o.name}</th></tr></thead><tbody>`;
+      html += `<div class="table-scroll"><table class="compare-stat-table"><thead><tr><th>Stat</th><th>${c.name}</th><th>${o.name}</th></tr></thead><tbody>`;
       rows.forEach(([label, a, b]) => {
         html += `<tr><td>${label}</td><td class="scoreboard-nums">${a}</td><td class="scoreboard-nums">${b}</td></tr>`;
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
 
       html += `<div class="managers-behind-head">Managers Behind Each Club</div>
         <div class="managers-behind-sub">Every fantasy manager owning each club, with their own points — same club, different results, since each manager's score depends on their own captain pick.</div>`;
