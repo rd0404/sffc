@@ -611,6 +611,10 @@
   .submit-status.ok { color: var(--pitch-bright); }
   .submit-status.err { color: var(--loss); }
 
+  .results-table .club-cell { font-weight: 600; }
+  .results-table .results-gw-cell { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
+  .results-table .results-vs-cell { color: var(--text-faint); font-size: 12px; text-align: center; }
+
   .prize-card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -1422,25 +1426,26 @@
     try {
       const url = gw ? `/api/gameweek?event=${gw}` : '/api/gameweek';
       const data = await fetchJSON(url);
-      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div><div>`;
       const filtered = data.matches.filter(m =>
         !search || m.home.club.toLowerCase().includes(search) || m.away.club.toLowerCase().includes(search)
       );
+      let html = '<div class="table-scroll"><table class="results-table"><thead><tr><th>GW</th><th>Home</th><th class="num">Pts</th><th></th><th class="num">Pts</th><th>Away</th></tr></thead><tbody>';
       if (!filtered.length) {
-        html += '<div class="state-msg">No matching teams.</div>';
+        html += '<tr><td colspan="6"><div class="state-msg">No matching teams.</div></td></tr>';
       }
       filtered.forEach(m => {
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
-        html += `<div class="fixture-row">
-          <div class="fixture-club home ${homeWinning ? 'win-score' : (awayWinning ? 'loss-score' : '')}">${m.home.club}</div>
-          <div class="fixture-score ${homeWinning ? 'win-score' : (awayWinning ? 'loss-score' : '')} scoreboard-nums">${m.home.score}</div>
-          <span class="status-badge status-${m.status}">${m.status === 'not_started' ? 'NOT STARTED' : m.status.toUpperCase()}</span>
-          <div class="fixture-score ${awayWinning ? 'win-score' : (homeWinning ? 'loss-score' : '')} scoreboard-nums">${m.away.score}</div>
-          <div class="fixture-club away ${awayWinning ? 'win-score' : (homeWinning ? 'loss-score' : '')}">${m.away.club}</div>
-        </div>`;
+        html += `<tr>
+          <td class="results-gw-cell">GW${data.event}</td>
+          <td class="club-cell ${homeWinning ? 'win-score' : ''}">${m.home.club}</td>
+          <td class="num scoreboard-nums ${homeWinning ? 'win-score' : ''}">${m.home.score}</td>
+          <td class="results-vs-cell">vs</td>
+          <td class="num scoreboard-nums ${awayWinning ? 'win-score' : ''}">${m.away.score}</td>
+          <td class="club-cell ${awayWinning ? 'win-score' : ''}">${m.away.club}</td>
+        </tr>`;
       });
-      html += '</div>';
+      html += '</tbody></table></div>';
       el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load results &mdash; ${err.message}</div>`;
