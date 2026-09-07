@@ -2001,7 +2001,7 @@
       );
       let html = `<div class="captain-row captain-row-header">
         <span class="captain-club">Club</span>
-        <span class="captain-header-names"><span>Manager</span><span>Team Name</span></span>
+        <span class="captain-header-names"><span>Captain</span></span>
       </div><div>`;
       results.forEach(r => {
         let nameHtml;
@@ -2011,7 +2011,6 @@
           const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
           nameHtml = `<span class="captain-names">
             <span class="captain-manager-name">${m ? m.managerName : 'Unknown manager'}</span>
-            <span class="captain-team-name">${m ? m.teamName : ''}</span>
           </span>`;
         } else {
           nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
