@@ -1,17 +1,8 @@
-// Netlify Function — GET /.netlify/functions/standings-live
-//
-// Same as /api/standings, PLUS the current in-progress gameweek's live
-// scores folded in as a provisional result — clearly flagged via
-// "provisionalEvent" in the response so the frontend can show a "live,
-// not yet final" indicator.
-//
-// If the current gameweek has already been snapshotted as finalized,
-// this behaves exactly like /api/standings — no double-counting.
-
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { computeMatchResults } = require("../../lib/matchResults");
+const { getClubScoreWithCaptain } = require("../../lib/managerData");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
 
@@ -44,15 +35,19 @@ exports.handler = async () => {
       const fixtures = await fplClient.getFixtures(currentEvent);
       const { opponentOf } = buildFixtureLookups(fixtures);
 
+      const standingsCache = {};
+      async function getStandings(team) {
+        if (!standingsCache[team.club]) {
+          standingsCache[team.club] = await fplClient.getLeagueStandings(team.leagueId);
+        }
+        return standingsCache[team.club];
+      }
+
       const clubScore = {};
       await Promise.all(
         teamsConfig.map(async (team) => {
-          const data = await fplClient.getLeagueStandings(team.leagueId);
-          const score = data.standings.results.reduce(
-            (sum, m) => sum + m.event_total,
-            0
-          );
-          clubScore[team.fplClubId] = score;
+          const result = await getClubScoreWithCaptain(team, currentEvent, currentEvent, getStandings);
+          clubScore[team.fplClubId] = result.total;
         })
       );
 
