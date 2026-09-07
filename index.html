@@ -1041,7 +1041,6 @@
       gap: 4px;
       padding: 12px 14px;
     }
-    .captain-row-header { display: none; }
     .captain-club { font-size: 14px; }
     .captain-names {
       flex-direction: column;
@@ -1999,28 +1998,23 @@
       const results = await Promise.all(
         TEAM_LINKS.map(t => fetchJSON(`/api/captain?club=${encodeURIComponent(t.club)}&event=${gw}`))
       );
-      let html = `<div class="captain-row captain-row-header">
-        <span class="captain-club">Club</span>
-        <span class="captain-header-names"><span>Captain</span></span>
-      </div><div>`;
+      let html = '<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th></tr></thead><tbody>';
       results.forEach(r => {
         let nameHtml;
         if (r.record && r.record.maxChip) {
-          nameHtml = '<span class="captain-names"><span class="captain-manager-name">Max Captain chip active</span></span><span class="captain-chip-badge">MAX</span>';
+          nameHtml = 'Max Captain chip active <span class="captain-chip-badge">MAX</span>';
         } else if (r.record && r.record.managerEntry) {
           const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
-          nameHtml = `<span class="captain-names">
-            <span class="captain-manager-name">${m ? m.managerName : 'Unknown manager'}</span>
-          </span>`;
+          nameHtml = m ? m.managerName : 'Unknown manager';
         } else {
           nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
         }
-        html += `<div class="captain-row">
-          <span class="captain-club">${r.club}</span>
-          ${nameHtml}
-        </div>`;
+        html += `<tr>
+          <td class="club-cell">${r.club}</td>
+          <td>${nameHtml}</td>
+        </tr>`;
       });
-      html += '</div>';
+      html += '</tbody></table></div>';
       el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load captain picks &mdash; ${err.message}</div>`;
