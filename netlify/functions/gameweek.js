@@ -1,35 +1,42 @@
-// Netlify Function — GET /.netlify/functions/gameweek
-// (same logic as api/gameweek.js, adapted to Netlify's handler signature)
+// Netlify Function — GET /.netlify/functions/gameweek?event=N
+//
+// Returns the given gameweek's (or current, if omitted) fixture-derived
+// matchups and scores for all 20 SFFC teams. Live event_total is used for
+// the current gameweek; a past gameweek's scores come from each manager's
+// own history, which never changes once that gameweek is over.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
+const { getClubScoreForEvent } = require("../../lib/managerData");
 
-exports.handler = async (event, context) => {
+exports.handler = async (evt) => {
   try {
+    const params = evt.queryStringParameters || {};
     const bootstrap = await fplClient.getBootstrap();
-    const gw = fplClient.getCurrentEvent(bootstrap);
-    const fixtures = await fplClient.getFixtures(gw);
+    const currentEvent = fplClient.getCurrentEvent(bootstrap);
+    const requestedEvent = params.event ? parseInt(params.event, 10) : currentEvent;
+
+    const fixtures = await fplClient.getFixtures(requestedEvent);
     const { opponentOf, fixtureStatusOf } = buildFixtureLookups(fixtures);
 
-    const standingsByClub = {};
+    const standingsCache = {};
+    async function getStandings(team) {
+      if (!standingsCache[team.club]) {
+        standingsCache[team.club] = await fplClient.getLeagueStandings(team.leagueId);
+      }
+      return standingsCache[team.club];
+    }
+
+    const scoreByClub = {};
     await Promise.all(
       teamsConfig.map(async (team) => {
-        const data = await fplClient.getLeagueStandings(team.leagueId);
-        const managers = data.standings.results;
-        const score = managers.reduce((sum, m) => sum + m.event_total, 0);
-        standingsByClub[team.fplClubId] = {
-          club: team.club,
-          fplClubId: team.fplClubId,
-          score,
-          managers: managers.map((m) => ({
-            entry: m.entry,
-            teamName: m.entry_name,
-            managerName: m.player_name,
-            eventTotal: m.event_total,
-            total: m.total,
-          })),
-        };
+        scoreByClub[team.fplClubId] = await getClubScoreForEvent(
+          team,
+          requestedEvent,
+          currentEvent,
+          getStandings
+        );
       })
     );
 
@@ -46,12 +53,12 @@ exports.handler = async (event, context) => {
       seen.add(homeId);
       seen.add(awayId);
 
-      const home = standingsByClub[homeId];
-      const away = standingsByClub[awayId];
+      const homeTeam = teamsConfig.find((t) => t.fplClubId === homeId);
+      const awayTeam = teamsConfig.find((t) => t.fplClubId === awayId);
 
       matches.push({
-        home: { club: home.club, score: home.score },
-        away: { club: away.club, score: away.score },
+        home: { club: homeTeam.club, score: scoreByClub[homeId] },
+        away: { club: awayTeam.club, score: scoreByClub[awayId] },
         status: fixtureStatusOf[homeId] || "not_started",
       });
     }
@@ -59,7 +66,11 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event: gw, matches }),
+      body: JSON.stringify({
+        event: requestedEvent,
+        isCurrent: requestedEvent === currentEvent,
+        matches,
+      }),
     };
   } catch (err) {
     return {
