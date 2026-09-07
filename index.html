@@ -441,6 +441,79 @@
   }
   .team-link-btn:hover { border-color: var(--amber); }
 
+  .captain-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .captain-row:last-child { border-bottom: none; }
+  .captain-club { font-weight: 600; font-size: 14px; }
+  .captain-name { font-size: 13px; }
+  .captain-name.pending { color: var(--text-faint); font-style: italic; }
+  .captain-chip-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--amber-bright);
+    border: 1px solid var(--amber-dim);
+    padding: 2px 7px;
+    border-radius: 100px;
+    margin-left: 8px;
+  }
+  .captain-star { color: var(--amber-bright); margin-right: 4px; }
+
+  .submit-form {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .submit-current {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .submit-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .submit-option:last-of-type { border-bottom: none; }
+  .submit-option input { accent-color: var(--amber); }
+  .submit-option-label { font-size: 13.5px; font-weight: 500; }
+  .submit-option-sub { font-size: 11.5px; color: var(--text-faint); }
+  .submit-maxchip-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 4px 4px;
+    margin-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+  .submit-btn {
+    background: var(--amber);
+    color: #201503;
+    border: none;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+  .submit-btn:hover { background: var(--amber-bright); }
+  .submit-status {
+    margin-top: 12px;
+    font-size: 13px;
+  }
+  .submit-status.ok { color: var(--pitch-bright); }
+  .submit-status.err { color: var(--loss); }
+
   .prize-card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -740,8 +813,8 @@
   <button class="tab-btn" data-tab="totw"><span class="tab-icon">🏅</span>Team of the Week</button>
   <button class="tab-btn" data-tab="progress"><span class="tab-icon">⏱️</span>Played vs Remaining</button>
   <button class="tab-btn" data-tab="compare"><span class="tab-icon">⚖️</span>Compare Teams</button>
-  <button class="tab-btn soon-btn" data-soon="Captain Picks" data-soon-desc="Who each club captained, by gameweek."><span class="tab-icon">🎥</span>Captain Picks<span class="soon-tag">Soon</span></button>
-  <button class="tab-btn soon-btn" data-soon="Submit Captain" data-soon-desc="Weekly captain submission, saved straight to the league's tracking sheet."><span class="tab-icon">✍️</span>Submit Captain<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn" data-tab="captainpicks"><span class="tab-icon">🎥</span>Captain Picks</button>
+  <button class="tab-btn" data-tab="submitcaptain"><span class="tab-icon">✍️</span>Submit Captain</button>
 
   <div class="drawer-group-label">Club Performance</div>
   <button class="tab-btn soon-btn" data-soon="Chip Usage" data-soon-desc="Which chip each club has played and when."><span class="tab-icon">💡</span>Chip Usage<span class="soon-tag">Soon</span></button>
@@ -774,6 +847,23 @@
       <input type="text" id="resultsSearch" placeholder="Search team&hellip;" />
     </div>
     <div id="resultsContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="captainpicks" class="panel">
+    <p class="panel-intro">Who each club captained this gameweek &mdash; their points are doubled in the club's total. No submission on file falls back to the rulebook default: the lowest scorer that week is auto-captained.</p>
+    <div class="filter-row">
+      <select id="captainPicksGW"></select>
+    </div>
+    <div id="captainPicksContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="submitcaptain" class="panel">
+    <p class="panel-intro">Pick a gameweek, your club, and which of the 6 members is captain for it. There's no login yet, so please only submit for your own club.</p>
+    <div class="filter-row">
+      <select id="submitGW"></select>
+      <select id="submitClub"></select>
+    </div>
+    <div id="submitCaptainContent"><div class="state-msg">Pick a gameweek and a club.</div></div>
   </section>
 
   <section id="totw" class="panel">
@@ -1195,6 +1285,142 @@
     el.innerHTML = html;
   }
 
+  async function loadCaptainPicks() {
+    const el = document.getElementById('captainPicksContent');
+    const gw = document.getElementById('captainPicksGW').value;
+    if (!gw) {
+      el.innerHTML = '<div class="state-msg">Pick a gameweek.</div>';
+      return;
+    }
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const results = await Promise.all(
+        TEAM_LINKS.map(t => fetchJSON(`/api/captain?club=${encodeURIComponent(t.club)}&event=${gw}`))
+      );
+      let html = '<div>';
+      results.forEach(r => {
+        let nameHtml;
+        if (r.record && r.record.maxChip) {
+          nameHtml = '<span class="captain-name">Max Captain chip active</span><span class="captain-chip-badge">MAX</span>';
+        } else if (r.record && r.record.managerEntry) {
+          const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
+          nameHtml = `<span class="captain-name">${m ? m.teamName : 'Unknown manager'}</span>`;
+        } else {
+          nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
+        }
+        html += `<div class="captain-row">
+          <span class="captain-club">${r.club}</span>
+          ${nameHtml}
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load captain picks &mdash; ${err.message}</div>`;
+    }
+  }
+
+  function populateSubmitClubSelect() {
+    const clubSelect = document.getElementById('submitClub');
+    CLUBS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      clubSelect.appendChild(opt);
+    });
+  }
+
+  async function loadSubmitCaptainForm() {
+    const gw = document.getElementById('submitGW').value;
+    const club = document.getElementById('submitClub').value;
+    const el = document.getElementById('submitCaptainContent');
+    if (!gw || !club) {
+      el.innerHTML = '<div class="state-msg">Pick a gameweek and a club.</div>';
+      return;
+    }
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const data = await fetchJSON(`/api/captain?club=${encodeURIComponent(club)}&event=${gw}`);
+      const currentEntry = data.record && data.record.managerEntry ? data.record.managerEntry : null;
+      const currentMaxChip = !!(data.record && data.record.maxChip);
+
+      let statusLine = 'No captain submitted yet for this gameweek.';
+      if (currentMaxChip) statusLine = 'Currently using the Max Captain chip.';
+      else if (currentEntry) {
+        const m = data.managers.find(mgr => mgr.entry === currentEntry);
+        statusLine = `Currently submitted: ${m ? m.teamName : 'Unknown'}.`;
+      }
+
+      let html = `<div class="submit-form">
+        <div class="submit-current">${statusLine}</div>
+        <div id="submitOptions">`;
+      data.managers.forEach(m => {
+        html += `<label class="submit-option">
+          <input type="radio" name="captainChoice" value="${m.entry}" ${currentEntry === m.entry ? 'checked' : ''} />
+          <div>
+            <div class="submit-option-label">${m.teamName}</div>
+            <div class="submit-option-sub">${m.managerName}</div>
+          </div>
+        </label>`;
+      });
+      html += `</div>
+        <label class="submit-maxchip-row">
+          <input type="checkbox" id="maxChipCheckbox" ${currentMaxChip ? 'checked' : ''} />
+          <div>
+            <div class="submit-option-label">Use Max Captain chip this gameweek</div>
+            <div class="submit-option-sub">Auto-selects whichever of the 6 members scores highest \u2014 once per phase.</div>
+          </div>
+        </label>
+        <button class="submit-btn" id="submitCaptainBtn">Submit</button>
+        <div class="submit-status" id="submitStatus"></div>
+      </div>`;
+
+      el.innerHTML = html;
+
+      const maxChipCheckbox = document.getElementById('maxChipCheckbox');
+      const optionsDiv = document.getElementById('submitOptions');
+      function syncDisabled() {
+        optionsDiv.querySelectorAll('input[type=radio]').forEach(r => { r.disabled = maxChipCheckbox.checked; });
+      }
+      syncDisabled();
+      maxChipCheckbox.addEventListener('change', syncDisabled);
+
+      document.getElementById('submitCaptainBtn').addEventListener('click', async () => {
+        const statusEl = document.getElementById('submitStatus');
+        statusEl.textContent = 'Submitting\u2026';
+        statusEl.className = 'submit-status';
+        try {
+          const body = { club, event: parseInt(gw, 10) };
+          if (maxChipCheckbox.checked) {
+            body.maxChip = true;
+          } else {
+            const chosen = optionsDiv.querySelector('input[type=radio]:checked');
+            if (!chosen) {
+              statusEl.textContent = 'Pick a member first.';
+              statusEl.className = 'submit-status err';
+              return;
+            }
+            body.managerEntry = parseInt(chosen.value, 10);
+          }
+          const res = await fetch('/api/captain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Submission failed');
+          statusEl.textContent = 'Captain saved.';
+          statusEl.className = 'submit-status ok';
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.className = 'submit-status err';
+        }
+      });
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load form &mdash; ${err.message}</div>`;
+    }
+  }
+
   function populateCompareSelectors() {
     populateGWSelect('compareGW');
     const clubSelect = document.getElementById('compareClub');
@@ -1210,8 +1436,8 @@
     return managers.map(m => `
       <div class="manager-row">
         <div class="manager-names">
-          <div class="manager-team-name">${m.teamName}</div>
-          <div class="manager-real-name">${m.managerName}</div>
+          <div class="manager-team-name">${m.isCaptain ? '<span class="captain-star">&#9733;</span>' : ''}${m.teamName}</div>
+          <div class="manager-real-name">${m.managerName}${m.isCaptain ? ' &middot; Captain' : ''}</div>
         </div>
         <div class="manager-pts">
           <span class="gw scoreboard-nums">${m.gwPoints}</span>
@@ -1255,6 +1481,7 @@
         ['Record (W-D-L)', c.record ? `${c.record.won}-${c.record.drawn}-${c.record.lost}` : '—', o.record ? `${o.record.won}-${o.record.drawn}-${o.record.lost}` : '—'],
         ['This GW Points', c.gwScore, o.gwScore],
         ['Club Pts (season total)', c.seasonTotal, o.seasonTotal],
+        ['Used CAP MAX?', c.usedMaxChip ? 'Yes' : 'No', o.usedMaxChip ? 'Yes' : 'No'],
       ];
 
       let html = `<div class="compare-fixture-line">${fixtureLine}</div>`;
@@ -1298,7 +1525,10 @@
   populateGWSelect('resultsGW');
   populateGWSelect('totwGW');
   populateGWSelect('progressGW');
+  populateGWSelect('captainPicksGW');
+  populateGWSelect('submitGW');
   populateCompareSelectors();
+  populateSubmitClubSelect();
 
   document.getElementById('resultsGW').addEventListener('change', loadResults);
   document.getElementById('resultsSearch').addEventListener('input', loadResults);
@@ -1307,9 +1537,14 @@
   document.getElementById('progressSearch').addEventListener('input', loadProgress);
   document.getElementById('compareGW').addEventListener('change', loadCompare);
   document.getElementById('compareClub').addEventListener('change', loadCompare);
+  document.getElementById('captainPicksGW').addEventListener('change', loadCaptainPicks);
+  document.getElementById('submitGW').addEventListener('change', loadSubmitCaptainForm);
+  document.getElementById('submitClub').addEventListener('change', loadSubmitCaptainForm);
 
   loadTeamLinks();
   loadCompare();
+  loadCaptainPicks();
+  loadSubmitCaptainForm();
   loadAll();
 </script>
 
