@@ -43,10 +43,11 @@ exports.handler = async (evt) => {
     const currentEvent = fplClient.getCurrentEvent(bootstrap);
 
     let provisionalEvent = null;
+    let settlingStatusByClub = {};
 
     if (getPhaseForEvent(currentEvent) === phase && !snapshottedEvents.has(currentEvent)) {
       const fixtures = await fplClient.getFixtures(currentEvent);
-      const { opponentOf } = buildFixtureLookups(fixtures);
+      const { opponentOf, fixtureStatusOf } = buildFixtureLookups(fixtures);
 
       const standingsCache = {};
       async function getStandings(team) {
@@ -63,6 +64,13 @@ exports.handler = async (evt) => {
           clubScore[team.fplClubId] = result.total;
         })
       );
+
+      teamsConfig.forEach((team) => {
+        const status = fixtureStatusOf[team.fplClubId] || "not_started";
+        if (status === "live" || status === "provisional") {
+          settlingStatusByClub[team.club] = status;
+        }
+      });
 
       const liveResults = computeMatchResults(teamsConfig, clubScore, opponentOf);
       pairs.push({ event: currentEvent, results: liveResults });
@@ -82,6 +90,7 @@ exports.handler = async (evt) => {
     const standings = fullTable.map((row, i) => ({
       ...row,
       previousPosition: prevPairs.length ? prevPositionByClub[row.club] || null : null,
+      settling: settlingStatusByClub[row.club] || null,
     }));
 
     return {
