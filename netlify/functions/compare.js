@@ -5,62 +5,18 @@
 //   - the opponent for that gameweek, auto-derived from the real fixture list
 //   - each club's score for that specific gameweek (live if it's the
 //     current gameweek, historical via manager entry history otherwise)
-//   - each club's CURRENT overall table position/points/GD/record (always
-//     the up-to-date live table, regardless of which past gameweek is
-//     being inspected — matches how the reference dashboard behaves)
-//   - a per-manager breakdown for both clubs: each manager's points for
-//     the selected gameweek and their own FPL season-total points
+//   - each club's CURRENT overall table position/points/GD/record
+//   - a per-manager breakdown for both clubs
 //
 // NOT included yet (needs the captain-tracking sheet, not connected):
 // captain star per manager, fine deductions, Captain Count, Used CAP MAX.
-// The frontend simply omits these until that's wired up.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
-
-async function getClubScoreForEvent(team, event, currentEvent, standingsCache) {
-  if (event === currentEvent) {
-    const data = await standingsCache(team);
-    return data.standings.results.reduce((sum, m) => sum + m.event_total, 0);
-  }
-  const data = await standingsCache(team);
-  const entryIds = data.standings.results.map((m) => m.entry);
-  let score = 0;
-  for (const entryId of entryIds) {
-    const history = await fplClient.getEntryHistory(entryId);
-    const row = history.current.find((h) => h.event === event);
-    score += row ? row.points : 0;
-  }
-  return score;
-}
-
-async function getManagerBreakdown(team, event, currentEvent, standingsData) {
-  const managers = [];
-  for (const m of standingsData.standings.results) {
-    let gwPoints;
-    let totalPoints;
-    if (event === currentEvent) {
-      gwPoints = m.event_total;
-      totalPoints = m.total;
-    } else {
-      const history = await fplClient.getEntryHistory(m.entry);
-      const row = history.current.find((h) => h.event === event);
-      gwPoints = row ? row.points : 0;
-      totalPoints = row ? row.total_points : m.total;
-    }
-    managers.push({
-      entry: m.entry,
-      teamName: m.entry_name,
-      managerName: m.player_name,
-      gwPoints,
-      totalPoints,
-    });
-  }
-  return managers;
-}
+const { getClubScoreForEvent, getManagerBreakdown } = require("../../lib/managerData");
 
 exports.handler = async (event) => {
   try {
@@ -101,7 +57,6 @@ exports.handler = async (event) => {
 
     const opponentTeam = teamsConfig.find((t) => t.fplClubId === opponentClubId);
 
-    // Cache league standings per team within this request (needed multiple times).
     const standingsCache = {};
     async function getStandings(team) {
       if (!standingsCache[team.club]) {
@@ -125,9 +80,6 @@ exports.handler = async (event) => {
       getManagerBreakdown(opponentTeam, requestedEvent, currentEvent, opponentStandingsData),
     ]);
 
-    // Current overall table (position/points/GD/record) — always the live
-    // finalized table (this season's completed gameweeks only), independent
-    // of which past gameweek is being inspected via the GW filter.
     const store = resultsStore();
     const { blobs } = await store.list({ prefix: "gw-" });
     const finalizedResults = [];
