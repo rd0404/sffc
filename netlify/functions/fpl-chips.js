@@ -1,12 +1,14 @@
 // Netlify Function — GET /.netlify/functions/fpl-chips?club=Arsenal&event=3
 //
-// For a club's 6 managers, how many used each of the 4 real FPL chips
-// (Wildcard, Free Hit, Bench Boost, Triple Captain) in the given
-// gameweek — read directly from each manager's own picks.active_chip,
-// the same field FPL itself uses to mark a chip as played that week.
+// Rolling cumulative count: how many times a club's 6 managers have
+// played each real FPL chip (Wildcard, Free Hit, Bench Boost, Triple
+// Captain) from the START OF THE PHASE through the selected gameweek —
+// carrying forward each week rather than resetting, so picking GW5 shows
+// everything used across GW1-5, not just GW5 alone.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
+const { getPhaseForEvent, getPhaseRange } = require("../../lib/phase");
 
 const CHIP_LABELS = {
   wildcard: "Wildcard",
@@ -40,20 +42,29 @@ exports.handler = async (evt) => {
     const currentEvent = fplClient.getCurrentEvent(bootstrap);
     const requestedEvent = params.event ? parseInt(params.event, 10) : currentEvent;
 
+    const phase = getPhaseForEvent(requestedEvent);
+    const [phaseStart] = getPhaseRange(phase);
+
     const standings = await fplClient.getLeagueStandings(team.leagueId);
     const managers = standings.standings.results;
 
-    const counts = { wildcard: 0, freehit: 0, bboost: 0, "3xc": 0 };
+    // Fetch every (manager x gameweek) combination in parallel — from the
+    // start of the phase through the selected gameweek — for maximum
+    // speed within the function's time limit.
+    const tasks = [];
+    for (const m of managers) {
+      for (let gw = phaseStart; gw <= requestedEvent; gw++) {
+        tasks.push(
+          fplClient.getEntryPicks(m.entry, gw).then((picks) => picks.active_chip)
+        );
+      }
+    }
+    const activeChips = await Promise.all(tasks);
 
-    await Promise.all(
-      managers.map(async (m) => {
-        const picks = await fplClient.getEntryPicks(m.entry, requestedEvent);
-        const chip = picks.active_chip;
-        if (chip && counts.hasOwnProperty(chip)) {
-          counts[chip] += 1;
-        }
-      })
-    );
+    const counts = { wildcard: 0, freehit: 0, bboost: 0, "3xc": 0 };
+    activeChips.forEach((chip) => {
+      if (chip && counts.hasOwnProperty(chip)) counts[chip] += 1;
+    });
 
     const chips = Object.keys(CHIP_LABELS).map((key) => ({
       key,
@@ -67,6 +78,8 @@ exports.handler = async (evt) => {
       body: JSON.stringify({
         club: clubName,
         event: requestedEvent,
+        phase,
+        phaseStart,
         totalManagers: managers.length,
         chips,
       }),
