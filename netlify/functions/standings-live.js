@@ -1,7 +1,10 @@
-// GET /.netlify/functions/standings-live?phase=1|2
-// Same as /api/standings but scoped to one phase, plus the current
-// gameweek's live scores folded in as provisional — only if the current
-// gameweek falls within the requested phase.
+// Netlify Function — GET /.netlify/functions/standings-live?phase=1|2
+//
+// Same as /api/standings but scoped to one phase, PLUS the current
+// gameweek's live scores folded in as provisional (if it falls in this
+// phase). Each row includes "previousPosition" for a movement arrow —
+// the club's rank with the most recent gameweek (finalized or live
+// provisional) excluded.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
@@ -21,7 +24,7 @@ exports.handler = async (evt) => {
     const store = resultsStore();
     const { blobs } = await store.list({ prefix: "gw-" });
 
-    const allResults = [];
+    const pairs = [];
     const snapshottedEvents = new Set();
     for (const blobMeta of blobs) {
       let data = null;
@@ -31,7 +34,7 @@ exports.handler = async (evt) => {
         continue;
       }
       if (data && data.results && data.event >= start && data.event <= end) {
-        allResults.push(data.results);
+        pairs.push({ event: data.event, results: data.results });
       }
       if (data) snapshottedEvents.add(data.event);
     }
@@ -62,11 +65,24 @@ exports.handler = async (evt) => {
       );
 
       const liveResults = computeMatchResults(teamsConfig, clubScore, opponentOf);
-      allResults.push(liveResults);
+      pairs.push({ event: currentEvent, results: liveResults });
       provisionalEvent = currentEvent;
     }
 
-    const standings = buildTable(teamsConfig, allResults);
+    const fullTable = buildTable(teamsConfig, pairs.map((p) => p.results));
+
+    const latestEvent = pairs.length ? Math.max(...pairs.map((p) => p.event)) : null;
+    const prevPairs = pairs.filter((p) => p.event < latestEvent);
+    const prevTable = buildTable(teamsConfig, prevPairs.map((p) => p.results));
+    const prevPositionByClub = {};
+    prevTable.forEach((row, i) => {
+      prevPositionByClub[row.club] = i + 1;
+    });
+
+    const standings = fullTable.map((row, i) => ({
+      ...row,
+      previousPosition: prevPairs.length ? prevPositionByClub[row.club] || null : null,
+    }));
 
     return {
       statusCode: 200,
