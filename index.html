@@ -419,6 +419,80 @@
   .totw-manager-team { font-weight: 600; }
   .totw-manager-sub { font-size: 11.5px; color: var(--text-faint); }
 
+  .real-fixture-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .real-fixture-row:last-child { border-bottom: none; }
+  .real-fixture-teams { font-weight: 600; }
+  .real-fixture-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .chip-usage-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .chip-usage-row:last-child { border-bottom: none; }
+  .chip-usage-club { font-weight: 600; font-size: 14px; }
+  .chip-usage-status { font-size: 12px; }
+  .chip-usage-status.used { color: var(--amber-bright); }
+  .chip-usage-status.unused { color: var(--text-faint); }
+
+  .club-block {
+    margin-bottom: 22px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .club-block-head {
+    background: var(--surface-2);
+    padding: 10px 14px;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .club-block-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 14px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .club-block-row.warn { color: var(--loss); }
+
+  .stats-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .stats-table th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0 10px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .stats-table th.num, .stats-table td.num { text-align: center; }
+  .stats-table td {
+    padding: 10px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--line);
+  }
+  .stats-table tr:last-child td { border-bottom: none; }
+
   .team-link-row {
     display: flex;
     align-items: center;
@@ -817,13 +891,13 @@
   <button class="tab-btn" data-tab="submitcaptain"><span class="tab-icon">✍️</span>Submit Captain</button>
 
   <div class="drawer-group-label">Club Performance</div>
-  <button class="tab-btn soon-btn" data-soon="Chip Usage" data-soon-desc="Which chip each club has played and when."><span class="tab-icon">💡</span>Chip Usage<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn" data-tab="chipusage"><span class="tab-icon">💡</span>Chip Usage</button>
+  <button class="tab-btn" data-tab="captaincount"><span class="tab-icon">🧢</span>Captain Count</button>
 
   <div class="drawer-group-label">League Intel</div>
-  <button class="tab-btn soon-btn" data-soon="Fixtures" data-soon-desc="The full season's matchups, gameweek by gameweek."><span class="tab-icon">📅</span>Fixtures<span class="soon-tag">Soon</span></button>
-  <button class="tab-btn soon-btn" data-soon="Points Over Time" data-soon-desc="Manager points by gameweek — pick a week to narrow the table, or leave on All to see the full season."><span class="tab-icon">📈</span>Points Over Time<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn" data-tab="fixtures"><span class="tab-icon">📅</span>Fixtures</button>
   <button class="tab-btn" data-tab="teamlinks"><span class="tab-icon">🔗</span>Team Links</button>
-  <button class="tab-btn soon-btn" data-soon="Stats &amp; Records" data-soon-desc="Top and bottom scoring week counts, club by club."><span class="tab-icon">⭐</span>Stats &amp; Records<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn" data-tab="statsrecords"><span class="tab-icon">⭐</span>Stats &amp; Records</button>
 
   <div class="drawer-group-label">Player Intel (Live FPL)</div>
   <button class="tab-btn soon-btn" data-soon="Player Ownership" data-soon-desc="Pick a club to pull its 6 managers' live FPL squads via their mini-league."><span class="tab-icon">👥</span>Player Ownership<span class="soon-tag">Soon</span></button>
@@ -836,13 +910,23 @@
 <main>
 
   <section id="standings" class="panel active">
-    <p class="panel-intro">Computed live from every finished gameweek — 3 points for a win, 1 for a draw. The current gameweek's live scores are folded in as a provisional result until it's fully finished.</p>
+    <p class="panel-intro">Computed live from every finished gameweek within the phase — 3 points for a win, 1 for a draw. Phase 2 starts fresh at GW20; it doesn't carry over Phase 1's table.</p>
+    <div class="filter-row">
+      <select id="standingsPhase">
+        <option value="1">Phase 1 (GW1-19)</option>
+        <option value="2">Phase 2 (GW20-38)</option>
+      </select>
+    </div>
     <div id="standingsContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
   <section id="results" class="panel">
     <p class="panel-intro">Matchups derived automatically from the real Premier League fixture list.</p>
     <div class="filter-row">
+      <select id="resultsPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
       <select id="resultsGW"><option value="">Current GW</option></select>
       <input type="text" id="resultsSearch" placeholder="Search team&hellip;" />
     </div>
@@ -852,14 +936,22 @@
   <section id="captainpicks" class="panel">
     <p class="panel-intro">Who each club captained this gameweek &mdash; their points are doubled in the club's total. No submission on file falls back to the rulebook default: the lowest scorer that week is auto-captained.</p>
     <div class="filter-row">
+      <select id="captainPicksPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
       <select id="captainPicksGW"></select>
     </div>
     <div id="captainPicksContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
   <section id="submitcaptain" class="panel">
-    <p class="panel-intro">Pick a gameweek, your club, and which of the 6 members is captain for it. There's no login yet, so please only submit for your own club.</p>
+    <p class="panel-intro">Pick a gameweek, your club, and which of the 6 members is captain for it. Requires your club's passkey.</p>
     <div class="filter-row">
+      <select id="submitPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
       <select id="submitGW"></select>
       <select id="submitClub"></select>
     </div>
@@ -869,6 +961,10 @@
   <section id="totw" class="panel">
     <p class="panel-intro">The gameweek's top-scoring team, plus the highest and lowest scoring individual managers league-wide.</p>
     <div class="filter-row">
+      <select id="totwPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
       <select id="totwGW"><option value="">Current GW</option></select>
     </div>
     <div id="totwContent"><div class="state-msg">Loading&hellip;</div></div>
@@ -877,6 +973,10 @@
   <section id="progress" class="panel">
     <p class="panel-intro">Per club, how many of the 6 managers' starting XI players have kicked off this gameweek vs are still to come.</p>
     <div class="filter-row">
+      <select id="progressPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
       <select id="progressGW"><option value="">Current GW</option></select>
       <input type="text" id="progressSearch" placeholder="Search team&hellip;" />
     </div>
@@ -891,12 +991,57 @@
   <section id="compare" class="panel">
     <p class="panel-intro">Pick a gameweek and a club &mdash; the opponent auto-fills from that week's actual fixture.</p>
     <div class="compare-controls">
+      <select id="comparePhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
       <select id="compareGW"></select>
       <select id="compareClub"></select>
       <span class="compare-vs">vs</span>
       <span class="compare-opponent" id="compareOpponent">&mdash;</span>
     </div>
     <div id="compareContent"><div class="state-msg">Pick a gameweek and a club to compare.</div></div>
+  </section>
+
+  <section id="fixtures" class="panel">
+    <p class="panel-intro">The real Premier League fixture list for the selected gameweek.</p>
+    <div class="filter-row">
+      <select id="fixturesPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
+      <select id="fixturesGW"></select>
+      <input type="text" id="fixturesSearch" placeholder="Search team&hellip;" />
+    </div>
+    <div id="fixturesContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="chipusage" class="panel">
+    <p class="panel-intro">Which clubs have used their once-per-phase Max Captain chip, and in which gameweek.</p>
+    <div id="chipUsageContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="captaincount" class="panel">
+    <p class="panel-intro">How many times each member has been captain within the phase &mdash; the rulebook requires at least 2 per member per phase. Max Captain chip weeks don't count toward any member.</p>
+    <div class="filter-row">
+      <select id="captainCountPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
+      <input type="text" id="captainCountSearch" placeholder="Search team&hellip;" />
+    </div>
+    <div id="captainCountContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="statsrecords" class="panel">
+    <p class="panel-intro">Top and bottom scoring week counts, club by club, within the phase. First pass &mdash; layout may be refined once compared against the reference.</p>
+    <div class="filter-row">
+      <select id="statsRecordsPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
+    </div>
+    <div id="statsRecordsContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
   <section id="prizes" class="panel">
@@ -1099,8 +1244,9 @@
 
   async function loadStandings() {
     const el = document.getElementById('standingsContent');
+    const phase = document.getElementById('standingsPhase').value;
     try {
-      const data = await fetchJSON('/api/standings-live');
+      const data = await fetchJSON(`/api/standings-live?phase=${phase}`);
       let html = '';
       if (data.provisionalEvent) {
         html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
@@ -1156,14 +1302,34 @@
     { club: "Sunderland", leagueId: 1305200 },
   ];
 
-  function populateGWSelect(id) {
+  function populateGWSelect(id, start, end) {
     const select = document.getElementById(id);
-    for (let i = 1; i <= 38; i++) {
+    const keepBlank = select.querySelector('option[value=""]');
+    select.innerHTML = '';
+    if (keepBlank) select.appendChild(keepBlank);
+    const s = start || 1;
+    const e = end || 38;
+    for (let i = s; i <= e; i++) {
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = 'GW' + i;
       select.appendChild(opt);
     }
+  }
+
+  function phaseRange(phaseValue) {
+    return phaseValue === '2' ? [20, 38] : [1, 19];
+  }
+
+  // Wires a Phase <select> to a GW <select>: switching phase repopulates
+  // the GW options to that phase's range and re-triggers the load callback.
+  function wirePhaseGW(phaseId, gwId, onChange) {
+    const phaseSelect = document.getElementById(phaseId);
+    phaseSelect.addEventListener('change', () => {
+      const [s, e] = phaseRange(phaseSelect.value);
+      populateGWSelect(gwId, s, e);
+      onChange();
+    });
   }
 
   async function loadResults() {
@@ -1285,6 +1451,98 @@
     el.innerHTML = html;
   }
 
+  async function loadFixtures() {
+    const el = document.getElementById('fixturesContent');
+    const gw = document.getElementById('fixturesGW').value;
+    const search = document.getElementById('fixturesSearch').value.trim().toLowerCase();
+    if (!gw) { el.innerHTML = '<div class="state-msg">Pick a gameweek.</div>'; return; }
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const data = await fetchJSON(`/api/fixtures-list?event=${gw}`);
+      const filtered = data.fixtures.filter(f =>
+        !search || f.home.toLowerCase().includes(search) || f.away.toLowerCase().includes(search)
+      );
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div><div>`;
+      if (!filtered.length) html += '<div class="state-msg">No matching fixtures.</div>';
+      filtered.forEach(f => {
+        const scoreStr = (f.homeScore != null && f.awayScore != null) ? `${f.homeScore} - ${f.awayScore}` : 'vs';
+        const kickoffStr = f.kickoff ? new Date(f.kickoff).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        html += `<div class="real-fixture-row">
+          <span class="real-fixture-teams">${f.home} ${scoreStr} ${f.away}</span>
+          <span class="real-fixture-meta"><span class="status-badge status-${f.status}">${f.status === 'not_started' ? 'NOT STARTED' : f.status.toUpperCase()}</span>${kickoffStr}</span>
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load fixtures &mdash; ${err.message}</div>`;
+    }
+  }
+
+  async function loadChipUsage() {
+    const el = document.getElementById('chipUsageContent');
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const data = await fetchJSON('/api/chip-usage');
+      let html = '<div>';
+      data.teams.forEach(t => {
+        const p1 = t.phase1Used ? `<span class="chip-usage-status used">Used GW${t.phase1Used}</span>` : '<span class="chip-usage-status unused">Not used</span>';
+        const p2 = t.phase2Used ? `<span class="chip-usage-status used">Used GW${t.phase2Used}</span>` : '<span class="chip-usage-status unused">Not used</span>';
+        html += `<div class="chip-usage-row">
+          <span class="chip-usage-club">${t.club}</span>
+          <span style="display:flex;gap:16px;font-size:12px;">
+            <span>P1: ${p1}</span><span>P2: ${p2}</span>
+          </span>
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load chip usage &mdash; ${err.message}</div>`;
+    }
+  }
+
+  async function loadCaptainCount() {
+    const el = document.getElementById('captainCountContent');
+    const phase = document.getElementById('captainCountPhase').value;
+    const search = document.getElementById('captainCountSearch').value.trim().toLowerCase();
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const data = await fetchJSON(`/api/captain-count?phase=${phase}`);
+      const filtered = data.teams.filter(t => !search || t.club.toLowerCase().includes(search));
+      let html = '';
+      if (!filtered.length) html = '<div class="state-msg">No matching teams.</div>';
+      filtered.forEach(t => {
+        html += `<div class="club-block"><div class="club-block-head">${t.club}</div>`;
+        t.managers.forEach(m => {
+          const warn = m.count < 2 ? ' warn' : '';
+          html += `<div class="club-block-row${warn}"><span>${m.teamName}</span><span class="scoreboard-nums">${m.count} time${m.count === 1 ? '' : 's'}${m.count < 2 ? ' (below minimum of 2)' : ''}</span></div>`;
+        });
+        html += '</div>';
+      });
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load captain counts &mdash; ${err.message}</div>`;
+    }
+  }
+
+  async function loadStatsRecords() {
+    const el = document.getElementById('statsRecordsContent');
+    const phase = document.getElementById('statsRecordsPhase').value;
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const data = await fetchJSON(`/api/stats-records?phase=${phase}`);
+      let html = '<table class="stats-table"><thead><tr><th>Club</th><th class="num">Top-scoring weeks</th><th class="num">Bottom-scoring weeks</th></tr></thead><tbody>';
+      data.teams.forEach(t => {
+        html += `<tr><td>${t.club}</td><td class="num scoreboard-nums">${t.topWeeks}</td><td class="num scoreboard-nums">${t.bottomWeeks}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load stats &mdash; ${err.message}</div>`;
+    }
+  }
+
   async function loadCaptainPicks() {
     const el = document.getElementById('captainPicksContent');
     const gw = document.getElementById('captainPicksGW').value;
@@ -1371,6 +1629,9 @@
             <div class="submit-option-sub">Auto-selects whichever of the 6 members scores highest \u2014 once per phase.</div>
           </div>
         </label>
+        <div class="submit-maxchip-row" style="border-top:none;">
+          <input type="password" id="submitPasskey" placeholder="Club passkey" class="filter-row-input-inline" style="background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;border-radius:6px;flex:1;" />
+        </div>
         <button class="submit-btn" id="submitCaptainBtn">Submit</button>
         <div class="submit-status" id="submitStatus"></div>
       </div>`;
@@ -1390,7 +1651,7 @@
         statusEl.textContent = 'Submitting\u2026';
         statusEl.className = 'submit-status';
         try {
-          const body = { club, event: parseInt(gw, 10) };
+          const body = { club, event: parseInt(gw, 10), passkey: document.getElementById('submitPasskey').value };
           if (maxChipCheckbox.checked) {
             body.maxChip = true;
           } else {
@@ -1527,9 +1788,11 @@
   populateGWSelect('progressGW');
   populateGWSelect('captainPicksGW');
   populateGWSelect('submitGW');
+  populateGWSelect('fixturesGW');
   populateCompareSelectors();
   populateSubmitClubSelect();
 
+  document.getElementById('standingsPhase').addEventListener('change', loadStandings);
   document.getElementById('resultsGW').addEventListener('change', loadResults);
   document.getElementById('resultsSearch').addEventListener('input', loadResults);
   document.getElementById('totwGW').addEventListener('change', loadTeamOfWeek);
@@ -1540,11 +1803,28 @@
   document.getElementById('captainPicksGW').addEventListener('change', loadCaptainPicks);
   document.getElementById('submitGW').addEventListener('change', loadSubmitCaptainForm);
   document.getElementById('submitClub').addEventListener('change', loadSubmitCaptainForm);
+  document.getElementById('fixturesGW').addEventListener('change', loadFixtures);
+  document.getElementById('fixturesSearch').addEventListener('input', loadFixtures);
+  document.getElementById('captainCountPhase').addEventListener('change', loadCaptainCount);
+  document.getElementById('captainCountSearch').addEventListener('input', loadCaptainCount);
+  document.getElementById('statsRecordsPhase').addEventListener('change', loadStatsRecords);
+
+  wirePhaseGW('resultsPhase', 'resultsGW', loadResults);
+  wirePhaseGW('totwPhase', 'totwGW', loadTeamOfWeek);
+  wirePhaseGW('progressPhase', 'progressGW', loadProgress);
+  wirePhaseGW('comparePhase', 'compareGW', loadCompare);
+  wirePhaseGW('captainPicksPhase', 'captainPicksGW', loadCaptainPicks);
+  wirePhaseGW('submitPhase', 'submitGW', loadSubmitCaptainForm);
+  wirePhaseGW('fixturesPhase', 'fixturesGW', loadFixtures);
 
   loadTeamLinks();
   loadCompare();
   loadCaptainPicks();
   loadSubmitCaptainForm();
+  loadFixtures();
+  loadChipUsage();
+  loadCaptainCount();
+  loadStatsRecords();
   loadAll();
 </script>
 
