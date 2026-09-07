@@ -38,3 +38,28 @@
   from = "/api/captain"
   to = "/.netlify/functions/captain"
   status = 200
+
+[[redirects]]
+  from = "/api/fixtures-list"
+  to = "/.netlify/functions/fixtures-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/chip-usage"
+  to = "/.netlify/functions/chip-usage"
+  status = 200
+
+[[redirects]]
+  from = "/api/captain-count"
+  to = "/.netlify/functions/captain-count"
+  status = 200
+
+[[redirects]]
+  from = "/api/stats-records"
+  to = "/.netlify/functions/stats-records"
+  status = 200
+
+[[redirects]]
+  from = "/api/backfill-captains"
+  to = "/.netlify/functions/backfill-captains"
+  status = 200
