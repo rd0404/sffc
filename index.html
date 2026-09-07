@@ -1504,9 +1504,10 @@
       if (data.provisionalEvent) {
         html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
       }
-      html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">Pts</th></tr></thead><tbody>';
+      html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th></tr></thead><tbody>';
       data.standings.forEach((t, i) => {
         const position = i + 1;
+        const gd = t.scoreFor - t.scoreAgainst;
         let moveHtml = '<span class="move-flat">&mdash;</span>';
         if (t.previousPosition != null) {
           if (t.previousPosition > position) {
@@ -1525,7 +1526,7 @@
           <td class="num scoreboard-nums">${t.won}</td>
           <td class="num scoreboard-nums">${t.drawn}</td>
           <td class="num scoreboard-nums">${t.lost}</td>
-          <td class="num scoreboard-nums">${t.scoreFor}</td>
+          <td class="num scoreboard-nums">${gd > 0 ? '+' + gd : gd}</td>
           <td class="num pts-cell scoreboard-nums">${t.points}</td>
         </tr>`;
       });
