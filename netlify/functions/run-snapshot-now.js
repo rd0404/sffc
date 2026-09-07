@@ -53,7 +53,7 @@ exports.handler = async (evt) => {
 
     const snapshottedNow = [];
 
-    for (let event = 1; event <= currentEvent; event++) {
+    for (let event = 1; event < currentEvent; event++) {
       let existing = null;
       try {
         existing = await store.get(`gw-${event}`, { type: "json" });
