@@ -1,22 +1,9 @@
-// Netlify Function — GET /.netlify/functions/compare?club=Arsenal&event=3
-//
-// Powers the Compare Teams tab. Given a club and (optionally) a gameweek,
-// returns:
-//   - the opponent for that gameweek, auto-derived from the real fixture list
-//   - each club's score for that specific gameweek (live if it's the
-//     current gameweek, historical via manager entry history otherwise)
-//   - each club's CURRENT overall table position/points/GD/record
-//   - a per-manager breakdown for both clubs
-//
-// NOT included yet (needs the captain-tracking sheet, not connected):
-// captain star per manager, fine deductions, Captain Count, Used CAP MAX.
-
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
-const { getClubScoreForEvent, getManagerBreakdown } = require("../../lib/managerData");
+const { getClubScoreWithCaptain } = require("../../lib/managerData");
 
 exports.handler = async (event) => {
   try {
@@ -65,20 +52,14 @@ exports.handler = async (event) => {
       return standingsCache[team.club];
     }
 
-    const [clubScore, opponentScore] = await Promise.all([
-      getClubScoreForEvent(clubTeam, requestedEvent, currentEvent, getStandings),
-      getClubScoreForEvent(opponentTeam, requestedEvent, currentEvent, getStandings),
+    const [clubResult, opponentResult] = await Promise.all([
+      getClubScoreWithCaptain(clubTeam, requestedEvent, currentEvent, getStandings),
+      getClubScoreWithCaptain(opponentTeam, requestedEvent, currentEvent, getStandings),
     ]);
 
-    const [clubStandingsData, opponentStandingsData] = await Promise.all([
-      getStandings(clubTeam),
-      getStandings(opponentTeam),
-    ]);
-
-    const [clubManagers, opponentManagers] = await Promise.all([
-      getManagerBreakdown(clubTeam, requestedEvent, currentEvent, clubStandingsData),
-      getManagerBreakdown(opponentTeam, requestedEvent, currentEvent, opponentStandingsData),
-    ]);
+    function withCaptainFlag(managers, captainEntry) {
+      return managers.map((m) => ({ ...m, isCaptain: m.entry === captainEntry }));
+    }
 
     const store = resultsStore();
     const { blobs } = await store.list({ prefix: "gw-" });
@@ -106,23 +87,25 @@ exports.handler = async (event) => {
         currentEvent,
         club: {
           name: clubName,
-          gwScore: clubScore,
+          gwScore: clubResult.total,
+          usedMaxChip: clubResult.usedMaxChip,
           position: clubRow ? clubRow.position : null,
           tablePoints: clubRow ? clubRow.points : null,
           goalDifference: clubRow ? clubRow.scoreFor - clubRow.scoreAgainst : null,
           record: clubRow ? { won: clubRow.won, drawn: clubRow.drawn, lost: clubRow.lost } : null,
           seasonTotal: clubRow ? clubRow.scoreFor : null,
-          managers: clubManagers,
+          managers: withCaptainFlag(clubResult.managers, clubResult.captainEntry),
         },
         opponent: {
           name: opponentTeam.club,
-          gwScore: opponentScore,
+          gwScore: opponentResult.total,
+          usedMaxChip: opponentResult.usedMaxChip,
           position: opponentRow ? opponentRow.position : null,
           tablePoints: opponentRow ? opponentRow.points : null,
           goalDifference: opponentRow ? opponentRow.scoreFor - opponentRow.scoreAgainst : null,
           record: opponentRow ? { won: opponentRow.won, drawn: opponentRow.drawn, lost: opponentRow.lost } : null,
           seasonTotal: opponentRow ? opponentRow.scoreFor : null,
-          managers: opponentManagers,
+          managers: withCaptainFlag(opponentResult.managers, opponentResult.captainEntry),
         },
       }),
     };
