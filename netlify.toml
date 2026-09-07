@@ -33,3 +33,8 @@
   from = "/api/team-of-week"
   to = "/.netlify/functions/team-of-week"
   status = 200
+
+[[redirects]]
+  from = "/api/captain"
+  to = "/.netlify/functions/captain"
+  status = 200
