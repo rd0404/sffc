@@ -515,6 +515,29 @@
   }
   .team-link-btn:hover { border-color: var(--amber); }
 
+  .captain-row-header {
+    background: var(--surface-2);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .captain-header-names {
+    display: flex;
+    gap: 24px;
+    text-align: right;
+  }
+  .captain-header-names span { min-width: 110px; }
+  .captain-names {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+  }
+  .captain-manager-name { font-weight: 600; font-size: 13.5px; min-width: 110px; text-align: right; }
+  .captain-team-name { font-size: 12px; color: var(--text-faint); min-width: 110px; text-align: right; }
+
   .captain-row {
     display: flex;
     justify-content: space-between;
@@ -1555,14 +1578,20 @@
       const results = await Promise.all(
         TEAM_LINKS.map(t => fetchJSON(`/api/captain?club=${encodeURIComponent(t.club)}&event=${gw}`))
       );
-      let html = '<div>';
+      let html = `<div class="captain-row captain-row-header">
+        <span class="captain-club">Club</span>
+        <span class="captain-header-names"><span>Manager</span><span>Team Name</span></span>
+      </div><div>`;
       results.forEach(r => {
         let nameHtml;
         if (r.record && r.record.maxChip) {
-          nameHtml = '<span class="captain-name">Max Captain chip active</span><span class="captain-chip-badge">MAX</span>';
+          nameHtml = '<span class="captain-names"><span class="captain-manager-name">Max Captain chip active</span></span><span class="captain-chip-badge">MAX</span>';
         } else if (r.record && r.record.managerEntry) {
           const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
-          nameHtml = `<span class="captain-name">${m ? m.teamName : 'Unknown manager'}</span>`;
+          nameHtml = `<span class="captain-names">
+            <span class="captain-manager-name">${m ? m.managerName : 'Unknown manager'}</span>
+            <span class="captain-team-name">${m ? m.teamName : ''}</span>
+          </span>`;
         } else {
           nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
         }
