@@ -133,14 +133,15 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 250px;
-    max-width: 80vw;
+    width: 260px;
+    max-width: 82vw;
     background: var(--surface);
     border-right: 1px solid var(--line);
     z-index: 30;
     display: flex;
     flex-direction: column;
-    padding: 4px;
+    padding: 4px 4px 20px;
+    overflow-y: auto;
     transform: translateX(-100%);
     transition: transform 0.22s ease;
   }
@@ -280,18 +281,37 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px 14px 10px;
+    padding: 16px 14px 14px;
     border-bottom: 1px solid var(--line);
     margin-bottom: 6px;
+  }
+  .drawer-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .crest-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1.5px solid var(--amber);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
   }
   .drawer-brand {
     font-family: 'Oswald', sans-serif;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14.5px;
+    color: var(--amber-bright);
   }
   .drawer-season {
-    font-size: 12px;
-    color: var(--text-muted);
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
     margin-top: 2px;
   }
   .drawer-close {
@@ -310,7 +330,7 @@
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.6px;
-    color: var(--text-muted);
+    color: var(--text-faint);
     text-transform: uppercase;
     padding: 14px 14px 4px;
   }
@@ -328,9 +348,98 @@
     padding: 2px 7px;
     border-radius: 100px;
   }
-  .drawer .tab-btn { display: flex; align-items: center; }
-  .soon-btn { color: var(--text-muted); }
-  .soon-btn:hover { background: rgba(255,255,255,0.05); }
+  .drawer .tab-btn {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    padding: 12px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-radius: 8px;
+    margin: 1px 6px;
+    width: calc(100% - 12px);
+  }
+  .drawer .tab-btn.active {
+    background: rgba(212,175,55,0.12);
+    color: var(--amber-bright);
+    font-weight: 600;
+  }
+  .drawer .tab-btn:not(.active):hover {
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+  }
+  .soon-btn { color: var(--text-faint) !important; }
+
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .filter-row select,
+  .filter-row input {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+  .filter-row input {
+    flex: 1;
+    min-width: 140px;
+  }
+  .filter-row input::placeholder { color: var(--text-faint); }
+
+  .totw-section-head {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--amber-bright);
+    text-transform: uppercase;
+    margin: 22px 0 10px;
+  }
+  .totw-manager-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .totw-manager-row:last-child { border-bottom: none; }
+  .totw-manager-left { min-width: 0; }
+  .totw-manager-team { font-weight: 600; }
+  .totw-manager-sub { font-size: 11.5px; color: var(--text-faint); }
+
+  .team-link-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .team-link-row:last-child { border-bottom: none; }
+  .team-link-club { font-weight: 600; font-size: 14px; }
+  .team-link-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--amber-bright);
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+  .team-link-btn:hover { border-color: var(--amber); }
 
   .prize-card {
     background: var(--surface);
@@ -406,21 +515,6 @@
     padding: 3px 10px;
     border-radius: 100px;
     margin-bottom: 14px;
-  }
-
-  .drawer .tab-btn {
-    flex: none;
-    text-align: left;
-    padding: 13px 14px;
-    border-radius: 6px;
-    font-size: 15px;
-  }
-  .drawer .tab-btn.active {
-    background: var(--amber);
-    color: #201503;
-  }
-  .drawer .tab-btn:not(.active):hover {
-    background: rgba(255,255,255,0.05);
   }
 
   main {
@@ -630,9 +724,12 @@
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <nav class="drawer" id="drawer">
   <div class="drawer-header">
-    <div>
-      <div class="drawer-brand">SFFC Fantasy League</div>
-      <div class="drawer-season">Season 2026/27</div>
+    <div class="drawer-brand-row">
+      <div class="crest-icon">🛡️</div>
+      <div>
+        <div class="drawer-brand">SFFC Fantasy League</div>
+        <div class="drawer-season">SEASON 2026/27</div>
+      </div>
     </div>
     <button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button>
   </div>
@@ -652,7 +749,7 @@
   <div class="drawer-group-label">League Intel</div>
   <button class="tab-btn soon-btn" data-soon="Fixtures" data-soon-desc="The full season's matchups, gameweek by gameweek."><span class="tab-icon">📅</span>Fixtures<span class="soon-tag">Soon</span></button>
   <button class="tab-btn soon-btn" data-soon="Points Over Time" data-soon-desc="Manager points by gameweek — pick a week to narrow the table, or leave on All to see the full season."><span class="tab-icon">📈</span>Points Over Time<span class="soon-tag">Soon</span></button>
-  <button class="tab-btn soon-btn" data-soon="Team Links" data-soon-desc="Each club's dedicated FPL mini-league page."><span class="tab-icon">🔗</span>Team Links<span class="soon-tag">Soon</span></button>
+  <button class="tab-btn" data-tab="teamlinks"><span class="tab-icon">🔗</span>Team Links</button>
   <button class="tab-btn soon-btn" data-soon="Stats &amp; Records" data-soon-desc="Top and bottom scoring week counts, club by club."><span class="tab-icon">⭐</span>Stats &amp; Records<span class="soon-tag">Soon</span></button>
 
   <div class="drawer-group-label">Player Intel (Live FPL)</div>
@@ -671,18 +768,34 @@
   </section>
 
   <section id="results" class="panel">
-    <p class="panel-intro">This gameweek's matchups, derived automatically from the real Premier League fixture list.</p>
+    <p class="panel-intro">Matchups derived automatically from the real Premier League fixture list.</p>
+    <div class="filter-row">
+      <select id="resultsGW"><option value="">Current GW</option></select>
+      <input type="text" id="resultsSearch" placeholder="Search team&hellip;" />
+    </div>
     <div id="resultsContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
   <section id="totw" class="panel">
-    <p class="panel-intro">All 20 clubs ranked by this gameweek's live score — sum of each club's 6 managers, doubled for their captain. Updates as matches are played.</p>
+    <p class="panel-intro">The gameweek's top-scoring team, plus the highest and lowest scoring individual managers league-wide.</p>
+    <div class="filter-row">
+      <select id="totwGW"><option value="">Current GW</option></select>
+    </div>
     <div id="totwContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
   <section id="progress" class="panel">
     <p class="panel-intro">Per club, how many of the 6 managers' starting XI players have kicked off this gameweek vs are still to come.</p>
+    <div class="filter-row">
+      <select id="progressGW"><option value="">Current GW</option></select>
+      <input type="text" id="progressSearch" placeholder="Search team&hellip;" />
+    </div>
     <div id="progressContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="teamlinks" class="panel">
+    <p class="panel-intro">Every club's dedicated FPL mini-league &mdash; opens the official Fantasy Premier League standings page for that league.</p>
+    <div id="teamLinksContent"></div>
   </section>
 
   <section id="compare" class="panel">
@@ -922,12 +1035,62 @@
     }
   }
 
+  const CLUBS = [
+    "Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea",
+    "Coventry City","Crystal Palace","Everton","Fulham","Hull City","Ipswich Town",
+    "Leeds","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Spurs","Sunderland"
+  ];
+
+  // League IDs for each club's dedicated FPL classic mini-league — used
+  // for the Team Links tab. Static data, doesn't need an API call.
+  const TEAM_LINKS = [
+    { club: "Arsenal", leagueId: 1263406 },
+    { club: "Aston Villa", leagueId: 28452 },
+    { club: "Bournemouth", leagueId: 292453 },
+    { club: "Brentford", leagueId: 1263170 },
+    { club: "Brighton", leagueId: 1263164 },
+    { club: "Chelsea", leagueId: 1027656 },
+    { club: "Coventry City", leagueId: 1301027 },
+    { club: "Crystal Palace", leagueId: 1264563 },
+    { club: "Everton", leagueId: 1265475 },
+    { club: "Fulham", leagueId: 1263796 },
+    { club: "Hull City", leagueId: 1506205 },
+    { club: "Ipswich Town", leagueId: 1308192 },
+    { club: "Leeds", leagueId: 1436276 },
+    { club: "Liverpool", leagueId: 1024955 },
+    { club: "Man City", leagueId: 1107689 },
+    { club: "Man Utd", leagueId: 1341741 },
+    { club: "Newcastle", leagueId: 1267182 },
+    { club: "Nott'm Forest", leagueId: 1265911 },
+    { club: "Spurs", leagueId: 1347752 },
+    { club: "Sunderland", leagueId: 1305200 },
+  ];
+
+  function populateGWSelect(id) {
+    const select = document.getElementById(id);
+    for (let i = 1; i <= 38; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = 'GW' + i;
+      select.appendChild(opt);
+    }
+  }
+
   async function loadResults() {
     const el = document.getElementById('resultsContent');
+    const gw = document.getElementById('resultsGW').value;
+    const search = document.getElementById('resultsSearch').value.trim().toLowerCase();
     try {
-      const data = await fetchJSON('/api/gameweek');
+      const url = gw ? `/api/gameweek?event=${gw}` : '/api/gameweek';
+      const data = await fetchJSON(url);
       let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div><div>`;
-      data.matches.forEach(m => {
+      const filtered = data.matches.filter(m =>
+        !search || m.home.club.toLowerCase().includes(search) || m.away.club.toLowerCase().includes(search)
+      );
+      if (!filtered.length) {
+        html += '<div class="state-msg">No matching teams.</div>';
+      }
+      filtered.forEach(m => {
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
         html += `<div class="fixture-row">
@@ -947,10 +1110,17 @@
 
   async function loadProgress() {
     const el = document.getElementById('progressContent');
+    const gw = document.getElementById('progressGW').value;
+    const search = document.getElementById('progressSearch').value.trim().toLowerCase();
     try {
-      const data = await fetchJSON('/api/progress');
+      const url = gw ? `/api/progress?event=${gw}` : '/api/progress';
+      const data = await fetchJSON(url);
       let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
-      const sorted = [...data.teams].sort((a, b) => b.playersPlayed - a.playersPlayed);
+      const filtered = data.teams.filter(t => !search || t.club.toLowerCase().includes(search));
+      const sorted = [...filtered].sort((a, b) => b.playersPlayed - a.playersPlayed);
+      if (!sorted.length) {
+        html += '<div class="state-msg">No matching teams.</div>';
+      }
       sorted.forEach(t => {
         const pct = Math.round((t.playersPlayed / t.totalStarters) * 100);
         html += `<div class="progress-item">
@@ -969,52 +1139,64 @@
 
   async function loadTeamOfWeek() {
     const el = document.getElementById('totwContent');
+    const gw = document.getElementById('totwGW').value;
     try {
-      const data = await fetchJSON('/api/gameweek');
-      const teams = [];
-      data.matches.forEach(m => {
-        teams.push({ club: m.home.club, score: m.home.score });
-        teams.push({ club: m.away.club, score: m.away.score });
-      });
-      teams.sort((a, b) => b.score - a.score);
+      const url = gw ? `/api/team-of-week?event=${gw}` : '/api/team-of-week';
+      const data = await fetchJSON(url);
 
-      const winner = teams[0];
       let html = `<div class="totw-winner">
         <div>
-          <div class="totw-winner-label">GAMEWEEK ${data.event} &middot; TOP SCORE</div>
-          <div class="totw-winner-club">${winner.club}</div>
+          <div class="totw-winner-label">GAMEWEEK ${data.event} &middot; TOP TEAM</div>
+          <div class="totw-winner-club">${data.topTeam.club}</div>
         </div>
-        <div class="totw-winner-score scoreboard-nums">${winner.score}</div>
-      </div><div>`;
+        <div class="totw-winner-score scoreboard-nums">${data.topTeam.score}</div>
+      </div>`;
 
-      teams.forEach((t, i) => {
-        html += `<div class="totw-row">
-          <span class="totw-rank scoreboard-nums">${i + 1}</span>
-          <span class="totw-club">${t.club}</span>
-          <span class="totw-score scoreboard-nums">${t.score}</span>
+      html += '<div class="totw-section-head">Top 5 Scoring Managers</div><div>';
+      data.topManagers.forEach(m => {
+        html += `<div class="totw-manager-row">
+          <div class="totw-manager-left">
+            <div class="totw-manager-team">${m.teamName}</div>
+            <div class="totw-manager-sub">${m.managerName} &middot; ${m.club}</div>
+          </div>
+          <span class="scoreboard-nums win-score" style="font-weight:700">${m.gwPoints}</span>
         </div>`;
       });
       html += '</div>';
+
+      html += '<div class="totw-section-head">Lowest 5 Scoring Managers</div><div>';
+      data.bottomManagers.forEach(m => {
+        html += `<div class="totw-manager-row">
+          <div class="totw-manager-left">
+            <div class="totw-manager-team">${m.teamName}</div>
+            <div class="totw-manager-sub">${m.managerName} &middot; ${m.club}</div>
+          </div>
+          <span class="scoreboard-nums" style="color:var(--text-muted)">${m.gwPoints}</span>
+        </div>`;
+      });
+      html += '</div>';
+
       el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load Team of the Week &mdash; ${err.message}</div>`;
     }
   }
 
-  const CLUBS = [
-    "Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea",
-    "Coventry City","Crystal Palace","Everton","Fulham","Hull City","Ipswich Town",
-    "Leeds","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Spurs","Sunderland"
-  ];
+  function loadTeamLinks() {
+    const el = document.getElementById('teamLinksContent');
+    let html = '<div>';
+    TEAM_LINKS.forEach(t => {
+      html += `<div class="team-link-row">
+        <span class="team-link-club">${t.club}</span>
+        <a class="team-link-btn" href="https://fantasy.premierleague.com/leagues/${t.leagueId}/standings/c" target="_blank" rel="noopener">View mini-league &rarr;</a>
+      </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
 
   function populateCompareSelectors() {
-    const gwSelect = document.getElementById('compareGW');
-    for (let i = 1; i <= 38; i++) {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = 'GW' + i;
-      gwSelect.appendChild(opt);
-    }
+    populateGWSelect('compareGW');
     const clubSelect = document.getElementById('compareClub');
     CLUBS.forEach(c => {
       const opt = document.createElement('option');
@@ -1112,9 +1294,21 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+  populateGWSelect('resultsGW');
+  populateGWSelect('totwGW');
+  populateGWSelect('progressGW');
   populateCompareSelectors();
+
+  document.getElementById('resultsGW').addEventListener('change', loadResults);
+  document.getElementById('resultsSearch').addEventListener('input', loadResults);
+  document.getElementById('totwGW').addEventListener('change', loadTeamOfWeek);
+  document.getElementById('progressGW').addEventListener('change', loadProgress);
+  document.getElementById('progressSearch').addEventListener('input', loadProgress);
   document.getElementById('compareGW').addEventListener('change', loadCompare);
   document.getElementById('compareClub').addEventListener('change', loadCompare);
+
+  loadTeamLinks();
   loadCompare();
   loadAll();
 </script>
