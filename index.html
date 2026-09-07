@@ -456,6 +456,17 @@
     font-size: 12px;
   }
 
+  .fplchip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .fplchip-row:last-child { border-bottom: none; }
+  .fplchip-label { font-weight: 600; font-size: 14px; }
+  .fplchip-count { color: var(--amber-bright); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
   .chip-usage-row {
     display: flex;
     justify-content: space-between;
@@ -1148,6 +1159,7 @@
 
   <div class="drawer-group-label">Club Performance</div>
   <button class="tab-btn" data-tab="chipusage"><span class="tab-icon">💡</span>Chip Usage</button>
+  <button class="tab-btn" data-tab="fplchips"><span class="tab-icon">🃏</span>FPL Chips</button>
   <button class="tab-btn" data-tab="captaincount"><span class="tab-icon">🧢</span>Captain Count</button>
 
   <div class="drawer-group-label">League Intel</div>
@@ -1293,6 +1305,19 @@
       </select>
     </div>
     <div id="chipUsageContent"><div class="state-msg">Loading&hellip;</div></div>
+  </section>
+
+  <section id="fplchips" class="panel">
+    <p class="panel-intro">How many of a club's 6 managers played each real FPL chip (Wildcard, Free Hit, Bench Boost, Triple Captain) in a given gameweek.</p>
+    <div class="filter-row">
+      <select id="fplChipsPhase">
+        <option value="1">Phase 1</option>
+        <option value="2">Phase 2</option>
+      </select>
+      <select id="fplChipsGW"></select>
+      <select id="fplChipsClub"></select>
+    </div>
+    <div id="fplChipsContent"><div class="state-msg">Pick a gameweek and a team.</div></div>
   </section>
 
   <section id="captaincount" class="panel">
@@ -1979,6 +2004,46 @@
     }
   }
 
+  function populateFplChipsSelectors() {
+    populateGWSelect('fplChipsGW');
+    const clubSelect = document.getElementById('fplChipsClub');
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Select team\u2026';
+    clubSelect.appendChild(blank);
+    CLUBS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      clubSelect.appendChild(opt);
+    });
+  }
+
+  async function loadFplChips() {
+    const gw = document.getElementById('fplChipsGW').value;
+    const club = document.getElementById('fplChipsClub').value;
+    const el = document.getElementById('fplChipsContent');
+    if (!gw || !club) {
+      el.innerHTML = '<div class="state-msg">Pick a gameweek and a team.</div>';
+      return;
+    }
+    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    try {
+      const data = await fetchJSON(`/api/fpl-chips?club=${encodeURIComponent(club)}&event=${gw}`);
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div><div>`;
+      data.chips.forEach(c => {
+        html += `<div class="fplchip-row">
+          <span class="fplchip-label">${c.label}</span>
+          <span class="fplchip-count scoreboard-nums">${c.count}/${data.totalManagers}</span>
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) {
+      el.innerHTML = `<div class="state-msg error">Couldn't load chip data &mdash; ${err.message}</div>`;
+    }
+  }
+
   async function loadCaptainCount() {
     const el = document.getElementById('captainCountContent');
     const phase = document.getElementById('captainCountPhase').value;
@@ -2351,6 +2416,11 @@
   loadFixtures();
   document.getElementById('chipUsagePhase').addEventListener('change', loadChipUsage);
   loadChipUsage();
+  populateFplChipsSelectors();
+  document.getElementById('fplChipsGW').addEventListener('change', loadFplChips);
+  document.getElementById('fplChipsClub').addEventListener('change', loadFplChips);
+  wirePhaseGW('fplChipsPhase', 'fplChipsGW', loadFplChips);
+  loadFplChips();
   loadCaptainCount();
   loadStatsRecords();
   loadOwnership();
