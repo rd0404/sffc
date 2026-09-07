@@ -1,10 +1,11 @@
 // GET  ?club=Arsenal&event=3  -> the club's 6 managers + current submission.
-// POST { club, event, managerEntry } -> submit a manual captain pick.
-// POST { club, event, maxChip: true } -> use the Max Captain chip.
+// POST { club, event, managerEntry, passkey } -> submit a manual captain pick.
+// POST { club, event, maxChip: true, passkey } -> use the Max Captain chip.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { getCaptainRecord, setCaptainRecord } = require("../../lib/captainStore");
+const teamPasskeys = require("../../lib/teamPasskeys");
 
 exports.handler = async (event) => {
   try {
@@ -27,6 +28,15 @@ exports.handler = async (event) => {
           statusCode: 404,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ error: `Unknown club '${club}'` }),
+        };
+      }
+
+      const expectedPasskey = teamPasskeys[club];
+      if (!body.passkey || body.passkey !== expectedPasskey) {
+        return {
+          statusCode: 401,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "Incorrect passkey for this club" }),
         };
       }
 
