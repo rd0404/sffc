@@ -1137,8 +1137,8 @@
   </div>
 
   <div class="drawer-group-label">This Season</div>
-  <button class="tab-btn active" data-tab="standings"><span class="tab-icon">🏆</span>Standings</button>
-  <button class="tab-btn" data-tab="results"><span class="tab-icon">⚔️</span>Results</button>
+  <button class="tab-btn" data-tab="standings"><span class="tab-icon">🏆</span>Standings</button>
+  <button class="tab-btn active" data-tab="results"><span class="tab-icon">⚔️</span>Results</button>
   <button class="tab-btn" data-tab="totw"><span class="tab-icon">🏅</span>Team of the Week</button>
   <button class="tab-btn" data-tab="progress"><span class="tab-icon">⏱️</span>Played vs Remaining</button>
   <button class="tab-btn" data-tab="compare"><span class="tab-icon">⚖️</span>Compare Teams</button>
@@ -1162,7 +1162,7 @@
 
 <main>
 
-  <section id="standings" class="panel active">
+  <section id="standings" class="panel">
     <p class="panel-intro">Computed live from every finished gameweek within the phase — 3 points for a win, 1 for a draw. Phase 2 starts fresh at GW20; it doesn't carry over Phase 1's table.</p>
     <div class="filter-row">
       <select id="standingsPhase">
@@ -1173,7 +1173,7 @@
     <div id="standingsContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
-  <section id="results" class="panel">
+  <section id="results" class="panel active">
     <p class="panel-intro">Matchups derived automatically from the real Premier League fixture list.</p>
     <div class="filter-row">
       <select id="resultsPhase">
