@@ -1,5 +1,9 @@
-// GET /.netlify/functions/standings?phase=1|2
-// Finalized table for ONE phase only — Phase 2 doesn't carry over Phase 1.
+// Netlify Function — GET /.netlify/functions/standings?phase=1|2
+//
+// Finalized table for ONE phase only (GW1-19 or GW20-38) — Phase 2 does
+// not carry over Phase 1's results. Each row also includes
+// "previousPosition" — the club's rank with the most recent gameweek's
+// result excluded, so the frontend can show a movement arrow.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const { resultsStore } = require("../../lib/blobStore");
@@ -15,7 +19,7 @@ exports.handler = async (event) => {
     const store = resultsStore();
     const { blobs } = await store.list({ prefix: "gw-" });
 
-    const allResults = [];
+    const pairs = [];
     for (const blobMeta of blobs) {
       let data = null;
       try {
@@ -24,11 +28,24 @@ exports.handler = async (event) => {
         continue;
       }
       if (data && data.results && data.event >= start && data.event <= end) {
-        allResults.push(data.results);
+        pairs.push({ event: data.event, results: data.results });
       }
     }
 
-    const standings = buildTable(teamsConfig, allResults);
+    const fullTable = buildTable(teamsConfig, pairs.map((p) => p.results));
+
+    const latestEvent = pairs.length ? Math.max(...pairs.map((p) => p.event)) : null;
+    const prevPairs = pairs.filter((p) => p.event < latestEvent);
+    const prevTable = buildTable(teamsConfig, prevPairs.map((p) => p.results));
+    const prevPositionByClub = {};
+    prevTable.forEach((row, i) => {
+      prevPositionByClub[row.club] = i + 1;
+    });
+
+    const standings = fullTable.map((row, i) => ({
+      ...row,
+      previousPosition: prevPairs.length ? prevPositionByClub[row.club] || null : null,
+    }));
 
     return {
       statusCode: 200,
