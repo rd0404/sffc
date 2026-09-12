@@ -641,23 +641,6 @@
   .submit-status.ok { color: var(--pitch-bright); }
   .submit-status.err { color: var(--loss); }
 
-  .share-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    color: var(--pitch-bright);
-    font-family: 'Inter', sans-serif;
-    font-size: 12.5px;
-    font-weight: 600;
-    padding: 7px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-bottom: 14px;
-  }
-  .share-btn:hover { border-color: var(--pitch-bright); }
-
   .settling-badge {
     display: inline-flex;
     align-items: center;
@@ -1549,10 +1532,6 @@
     });
   });
 
-  function shareToWhatsApp(text) {
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  }
-
   async function fetchJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Request failed (' + res.status + ')');
@@ -1569,12 +1548,11 @@
     const phase = document.getElementById('standingsPhase').value;
     try {
       const data = await fetchJSON(`/api/standings-live?phase=${phase}`);
-      let html = '<button class="share-btn" id="shareStandingsBtn">\ud83d\udce4 Share to WhatsApp</button>';
+      let html = '';
       if (data.provisionalEvent) {
         html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
       }
       html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th></tr></thead><tbody>';
-      const shareLines = [`*SFFC Standings \u2014 Phase ${phase}*`, ''];
       data.standings.forEach((t, i) => {
         const position = i + 1;
         const gd = t.scoreFor - t.scoreAgainst;
@@ -1602,11 +1580,9 @@
           <td class="num scoreboard-nums">${gd > 0 ? '+' + gd : gd}</td>
           <td class="num pts-cell scoreboard-nums">${t.points}</td>
         </tr>`;
-        shareLines.push(`${position}. ${t.club} \u2014 P${t.played} ${gd > 0 ? '+' + gd : gd} ${t.points}pts`);
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
-      document.getElementById('shareStandingsBtn').addEventListener('click', () => shareToWhatsApp(shareLines.join('\n')));
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load standings &mdash; ${err.message}</div>`;
     }
@@ -1694,7 +1670,7 @@
           return { winner: winner.club, loser: loser.club, winnerScore: winner.score, loserScore: loser.score, margin: Math.abs(m.home.score - m.away.score) };
         });
 
-      let html = '<button class="share-btn" id="shareResultsBtn">\ud83d\udce4 Share to WhatsApp</button>';
+      let html = '';
       if (decisive.length) {
         const biggest = decisive.reduce((a, b) => (b.margin > a.margin ? b : a), decisive[0]);
         const narrowest = decisive.reduce((a, b) => (b.margin < a.margin ? b : a), decisive[0]);
@@ -1717,7 +1693,6 @@
       if (!filtered.length) {
         html += '<tr><td colspan="5"><div class="state-msg">No matching teams.</div></td></tr>';
       }
-      const shareLines = [`*SFFC Results \u2014 GW${data.event}*`, ''];
       filtered.forEach(m => {
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
@@ -1734,16 +1709,12 @@
           <td class="num scoreboard-nums ${awayWinning ? 'win-score' : ''}">${m.away.score}</td>
           <td class="club-cell ${awayWinning ? 'win-score' : ''}">${m.away.club}</td>
         </tr>`;
-        const homeLabel = homeWinning ? `*${m.home.club}*` : m.home.club;
-        const awayLabel = awayWinning ? `*${m.away.club}*` : m.away.club;
-        shareLines.push(`${homeLabel} ${m.home.score} - ${m.away.score} ${awayLabel}`);
       });
       html += '</tbody></table></div>';
       if (data.matches.some(m => m.status === 'provisional' || m.status === 'live')) {
         html += '<p class="settling-note">Rows marked <span class="settling-dot inline"></span> are still settling \u2014 FPL hasn\u2019t confirmed final bonus points yet, so these scores can still shift slightly.</p>';
       }
       el.innerHTML = html;
-      document.getElementById('shareResultsBtn').addEventListener('click', () => shareToWhatsApp(shareLines.join('\n')));
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load results &mdash; ${err.message}</div>`;
     }
@@ -1946,22 +1917,13 @@
       const url = gw ? `/api/team-of-week?event=${gw}` : '/api/team-of-week';
       const data = await fetchJSON(url);
 
-      let html = '<button class="share-btn" id="shareTotwBtn">\ud83d\udce4 Share to WhatsApp</button>';
-      html += `<div class="totw-winner">
+      let html = `<div class="totw-winner">
         <div>
           <div class="totw-winner-label">GAMEWEEK ${data.event} &middot; TOP TEAM</div>
           <div class="totw-winner-club">${data.topTeam.club}</div>
         </div>
         <div class="totw-winner-score scoreboard-nums">${data.topTeam.score}</div>
       </div>`;
-
-      const shareLines = [
-        `*SFFC Team of the Week \u2014 GW${data.event}*`,
-        '',
-        `\ud83c\udfc6 Top Team: ${data.topTeam.club} (${data.topTeam.score} pts)`,
-        '',
-        '*Top 5 Scoring Managers*',
-      ];
 
       html += '<div class="totw-section-head">Top 5 Scoring Managers</div><div>';
       data.topManagers.forEach(m => {
@@ -1972,11 +1934,9 @@
           </div>
           <span class="scoreboard-nums win-score" style="font-weight:700">${m.gwPoints}</span>
         </div>`;
-        shareLines.push(`${m.teamName} (${m.club}) \u2014 ${m.gwPoints} pts`);
       });
       html += '</div>';
 
-      shareLines.push('', '*Lowest 5 Scoring Managers*');
       html += '<div class="totw-section-head">Lowest 5 Scoring Managers</div><div>';
       data.bottomManagers.forEach(m => {
         html += `<div class="totw-manager-row">
@@ -1986,12 +1946,10 @@
           </div>
           <span class="scoreboard-nums" style="color:var(--text-muted)">${m.gwPoints}</span>
         </div>`;
-        shareLines.push(`${m.teamName} (${m.club}) \u2014 ${m.gwPoints} pts`);
       });
       html += '</div>';
 
       el.innerHTML = html;
-      document.getElementById('shareTotwBtn').addEventListener('click', () => shareToWhatsApp(shareLines.join('\n')));
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load Team of the Week &mdash; ${err.message}</div>`;
     }
@@ -2153,35 +2111,26 @@
       const results = await Promise.all(
         TEAM_LINKS.map(t => fetchJSON(`/api/captain?club=${encodeURIComponent(t.club)}&event=${gw}`))
       );
-      let html = '<button class="share-btn" id="shareCaptainPicksBtn">\ud83d\udce4 Share to WhatsApp</button>';
-      html += '<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th></tr></thead><tbody>';
-      const shareLines = [`*SFFC Captain Picks \u2014 GW${gw}*`, ''];
+      let html = '<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th></tr></thead><tbody>';
       results.forEach(r => {
         let nameHtml;
-        let shareLabel;
         if (!r.locked) {
           nameHtml = '<span class="captain-name pending">To be announced</span>';
-          shareLabel = 'To be announced';
         } else if (r.record && r.record.maxChip) {
           nameHtml = 'Max Captain chip active <span class="captain-chip-badge">MAX</span>';
-          shareLabel = 'Max Captain chip active';
         } else if (r.record && r.record.managerEntry) {
           const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
           nameHtml = m ? m.managerName : 'Unknown manager';
-          shareLabel = nameHtml;
         } else {
           nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
-          shareLabel = 'Not submitted (lowest scorer auto-captained)';
         }
         html += `<tr>
           <td class="club-cell">${r.club}</td>
           <td>${nameHtml}</td>
         </tr>`;
-        shareLines.push(`${r.club}: ${shareLabel}`);
       });
       html += '</tbody></table></div>';
       el.innerHTML = html;
-      document.getElementById('shareCaptainPicksBtn').addEventListener('click', () => shareToWhatsApp(shareLines.join('\n')));
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load captain picks &mdash; ${err.message}</div>`;
     }
