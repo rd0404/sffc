@@ -2481,14 +2481,17 @@
   loadCaptainPicks();
 
   getCurrentGW().then(gw => {
+    const nextGW = gw + 1;
+
     const submitGWSelect = document.getElementById('submitGW');
-    if ([...submitGWSelect.options].some(o => o.value == gw)) {
+    if ([...submitGWSelect.options].some(o => o.value == nextGW)) {
+      submitGWSelect.value = nextGW;
+    } else if ([...submitGWSelect.options].some(o => o.value == gw)) {
       submitGWSelect.value = gw;
     }
     loadSubmitCaptainForm();
 
     const fixturesGWSelect = document.getElementById('fixturesGW');
-    const nextGW = gw + 1;
     if ([...fixturesGWSelect.options].some(o => o.value == nextGW)) {
       fixturesGWSelect.value = nextGW;
     } else if ([...fixturesGWSelect.options].some(o => o.value == gw)) {
