@@ -641,6 +641,22 @@
   .submit-status.ok { color: var(--pitch-bright); }
   .submit-status.err { color: var(--loss); }
 
+  .admin-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text-faint);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .admin-toggle-btn:hover { border-color: var(--amber-dim); color: var(--amber-bright); }
+
   .settling-badge {
     display: inline-flex;
     align-items: center;
@@ -2155,6 +2171,106 @@
     return new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
+  function renderCaptainForm(el, { gw, club, data, chipUnavailable, usedGWThisPhase, adminMode }) {
+    const currentEntry = data.record && data.record.managerEntry ? data.record.managerEntry : null;
+    const currentMaxChip = !!(data.record && data.record.maxChip);
+    const deadlineStr = formatDeadline(data.deadlineTime);
+
+    let statusLine = `Deadline: ${deadlineStr}. No captain submitted yet for this gameweek.`;
+    if (currentMaxChip) statusLine = `Deadline: ${deadlineStr}. Currently using the Max Captain chip.`;
+    else if (currentEntry) {
+      const m = data.managers.find(mgr => mgr.entry === currentEntry);
+      statusLine = `Deadline: ${deadlineStr}. Currently submitted: ${m ? m.managerName : 'Unknown'}.`;
+    }
+
+    let html = `<div class="submit-form">`;
+    if (adminMode) {
+      html += `<div class="soon-panel-badge" style="margin-bottom:10px;">Admin Override</div>`;
+    }
+    html += `<div class="submit-current">${statusLine}</div>
+        <div id="submitOptions">`;
+    data.managers.forEach(m => {
+      html += `<label class="submit-option">
+        <input type="radio" name="captainChoice" value="${m.entry}" ${currentEntry === m.entry ? 'checked' : ''} />
+        <div>
+          <div class="submit-option-label">${m.managerName}</div>
+          <div class="submit-option-sub">${m.teamName}</div>
+        </div>
+      </label>`;
+    });
+    html += `</div>`;
+    if (chipUnavailable) {
+      html += `<div class="submit-maxchip-row" style="opacity:0.6;">
+        <div>
+          <div class="submit-option-label">Max Captain chip already used</div>
+          <div class="submit-option-sub">This club used it in GW${usedGWThisPhase} this phase \u2014 only once per phase.</div>
+        </div>
+      </div>`;
+    } else {
+      html += `<label class="submit-maxchip-row">
+        <input type="checkbox" id="maxChipCheckbox" ${currentMaxChip ? 'checked' : ''} />
+        <div>
+          <div class="submit-option-label">Use Max Captain chip this gameweek</div>
+          <div class="submit-option-sub">Auto-selects whichever of the 6 members scores highest \u2014 once per phase.</div>
+        </div>
+      </label>`;
+    }
+    html += `<div class="submit-maxchip-row" style="border-top:none;">
+        <input type="password" id="submitPasskey" placeholder="${adminMode ? 'Admin passkey' : 'Club passkey'}" style="background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;border-radius:6px;flex:1;" />
+      </div>
+      <button class="submit-btn" id="submitCaptainBtn">Submit</button>
+      <div class="submit-status" id="submitStatus"></div>
+    </div>`;
+
+    el.innerHTML = html;
+
+    const maxChipCheckbox = document.getElementById('maxChipCheckbox');
+    const optionsDiv = document.getElementById('submitOptions');
+    function syncDisabled() {
+      if (!maxChipCheckbox) return;
+      optionsDiv.querySelectorAll('input[type=radio]').forEach(r => { r.disabled = maxChipCheckbox.checked; });
+    }
+    syncDisabled();
+    if (maxChipCheckbox) maxChipCheckbox.addEventListener('change', syncDisabled);
+
+    document.getElementById('submitCaptainBtn').addEventListener('click', async () => {
+      const statusEl = document.getElementById('submitStatus');
+      statusEl.textContent = 'Submitting\u2026';
+      statusEl.className = 'submit-status';
+      try {
+        const body = { club, event: parseInt(gw, 10) };
+        if (adminMode) {
+          body.adminPasskey = document.getElementById('submitPasskey').value;
+        } else {
+          body.passkey = document.getElementById('submitPasskey').value;
+        }
+        if (maxChipCheckbox && maxChipCheckbox.checked) {
+          body.maxChip = true;
+        } else {
+          const chosen = optionsDiv.querySelector('input[type=radio]:checked');
+          if (!chosen) {
+            statusEl.textContent = 'Pick a member first.';
+            statusEl.className = 'submit-status err';
+            return;
+          }
+          body.managerEntry = parseInt(chosen.value, 10);
+        }
+        const res = await fetch('/api/captain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Submission failed');
+        statusEl.textContent = 'Captain saved.';
+        statusEl.className = 'submit-status ok';
+      } catch (err) {
+        statusEl.textContent = err.message;
+        statusEl.className = 'submit-status err';
+      }
+    });
+  }
+
   async function loadSubmitCaptainForm() {
     const gw = document.getElementById('submitGW').value;
     const club = document.getElementById('submitClub').value;
@@ -2177,7 +2293,6 @@
       const phaseOfGW = gwNum <= 19 ? 1 : 2;
       const chipRow = chipData.teams.find(t => t.club === club);
       const usedGWThisPhase = chipRow ? (phaseOfGW === 2 ? chipRow.phase2Used : chipRow.phase1Used) : null;
-      // Already used the chip on a DIFFERENT gameweek this phase -> hide the option entirely.
       const chipUnavailable = usedGWThisPhase != null && usedGWThisPhase !== gwNum;
 
       if (data.locked) {
@@ -2191,95 +2306,17 @@
           <div class="soon-panel-badge" style="margin-bottom:10px;">Locked</div>
           <div class="submit-current">GW${gw}'s deadline (${deadlineStr}) has passed \u2014 submissions are closed, matching the real FPL deadline.</div>
           <div class="submit-current" style="margin-top:10px;">${lockedLine}</div>
+          <button class="admin-toggle-btn" id="adminOverrideToggle" style="margin-top:14px;">Admin Override</button>
+          <div id="adminOverrideArea"></div>
         </div>`;
+        document.getElementById('adminOverrideToggle').addEventListener('click', () => {
+          const area = document.getElementById('adminOverrideArea');
+          renderCaptainForm(area, { gw, club, data, chipUnavailable, usedGWThisPhase, adminMode: true });
+        });
         return;
       }
 
-      let statusLine = `Deadline: ${deadlineStr}. No captain submitted yet for this gameweek.`;
-      if (currentMaxChip) statusLine = `Deadline: ${deadlineStr}. Currently using the Max Captain chip.`;
-      else if (currentEntry) {
-        const m = data.managers.find(mgr => mgr.entry === currentEntry);
-        statusLine = `Deadline: ${deadlineStr}. Currently submitted: ${m ? m.managerName : 'Unknown'}.`;
-      }
-
-      let html = `<div class="submit-form">
-        <div class="submit-current">${statusLine}</div>
-        <div id="submitOptions">`;
-      data.managers.forEach(m => {
-        html += `<label class="submit-option">
-          <input type="radio" name="captainChoice" value="${m.entry}" ${currentEntry === m.entry ? 'checked' : ''} />
-          <div>
-            <div class="submit-option-label">${m.managerName}</div>
-            <div class="submit-option-sub">${m.teamName}</div>
-          </div>
-        </label>`;
-      });
-      html += `</div>`;
-      if (chipUnavailable) {
-        html += `<div class="submit-maxchip-row" style="opacity:0.6;">
-          <div>
-            <div class="submit-option-label">Max Captain chip already used</div>
-            <div class="submit-option-sub">This club used it in GW${usedGWThisPhase} this phase \u2014 only once per phase.</div>
-          </div>
-        </div>`;
-      } else {
-        html += `<label class="submit-maxchip-row">
-          <input type="checkbox" id="maxChipCheckbox" ${currentMaxChip ? 'checked' : ''} />
-          <div>
-            <div class="submit-option-label">Use Max Captain chip this gameweek</div>
-            <div class="submit-option-sub">Auto-selects whichever of the 6 members scores highest \u2014 once per phase.</div>
-          </div>
-        </label>`;
-      }
-      html += `<div class="submit-maxchip-row" style="border-top:none;">
-          <input type="password" id="submitPasskey" placeholder="Club passkey" class="filter-row-input-inline" style="background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;border-radius:6px;flex:1;" />
-        </div>
-        <button class="submit-btn" id="submitCaptainBtn">Submit</button>
-        <div class="submit-status" id="submitStatus"></div>
-      </div>`;
-
-      el.innerHTML = html;
-
-      const maxChipCheckbox = document.getElementById('maxChipCheckbox');
-      const optionsDiv = document.getElementById('submitOptions');
-      function syncDisabled() {
-        if (!maxChipCheckbox) return;
-        optionsDiv.querySelectorAll('input[type=radio]').forEach(r => { r.disabled = maxChipCheckbox.checked; });
-      }
-      syncDisabled();
-      if (maxChipCheckbox) maxChipCheckbox.addEventListener('change', syncDisabled);
-
-      document.getElementById('submitCaptainBtn').addEventListener('click', async () => {
-        const statusEl = document.getElementById('submitStatus');
-        statusEl.textContent = 'Submitting\u2026';
-        statusEl.className = 'submit-status';
-        try {
-          const body = { club, event: parseInt(gw, 10), passkey: document.getElementById('submitPasskey').value };
-          if (maxChipCheckbox && maxChipCheckbox.checked) {
-            body.maxChip = true;
-          } else {
-            const chosen = optionsDiv.querySelector('input[type=radio]:checked');
-            if (!chosen) {
-              statusEl.textContent = 'Pick a member first.';
-              statusEl.className = 'submit-status err';
-              return;
-            }
-            body.managerEntry = parseInt(chosen.value, 10);
-          }
-          const res = await fetch('/api/captain', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error || 'Submission failed');
-          statusEl.textContent = 'Captain saved.';
-          statusEl.className = 'submit-status ok';
-        } catch (err) {
-          statusEl.textContent = err.message;
-          statusEl.className = 'submit-status err';
-        }
-      });
+      renderCaptainForm(el, { gw, club, data, chipUnavailable, usedGWThisPhase, adminMode: false });
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load form &mdash; ${err.message}</div>`;
     }
