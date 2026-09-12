@@ -1201,7 +1201,7 @@
   </section>
 
   <section id="captainpicks" class="panel">
-    <p class="panel-intro">Who each club captained this gameweek &mdash; their points are doubled in the club's total. No submission on file falls back to the rulebook default: the lowest scorer that week is auto-captained.</p>
+    <p class="panel-intro">Who each club captained this gameweek &mdash; their points are doubled in the club's total. Picks stay hidden until that gameweek's deadline passes, so no one can copy a rival's choice; no submission on file falls back to the rulebook default: the lowest scorer that week is auto-captained.</p>
     <div class="filter-row">
       <select id="captainPicksPhase">
         <option value="1">Phase 1</option>
@@ -2114,7 +2114,11 @@
       let html = '<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th></tr></thead><tbody>';
       results.forEach(r => {
         let nameHtml;
-        if (r.record && r.record.maxChip) {
+        if (!r.locked) {
+          nameHtml = r.record
+            ? '<span class="captain-name pending">Submitted &mdash; hidden until deadline</span>'
+            : '<span class="captain-name pending">Not submitted yet</span>';
+        } else if (r.record && r.record.maxChip) {
           nameHtml = 'Max Captain chip active <span class="captain-chip-badge">MAX</span>';
         } else if (r.record && r.record.managerEntry) {
           const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
