@@ -14,7 +14,6 @@ const fplClient = require("../../lib/fplClient");
 const { getCaptainRecord, setCaptainRecord } = require("../../lib/captainStore");
 const teamPasskeys = require("../../lib/teamPasskeys");
 const { getPhaseRange } = require("../../lib/phase");
-const { sendEmail } = require("../../lib/emailClient");
 
 async function getDeadlineInfo(gw) {
   const bootstrap = await fplClient.getBootstrap();
@@ -85,7 +84,6 @@ exports.handler = async (event) => {
       }
 
       let record;
-      let captainLabel;
       if (body.maxChip) {
         const alreadyUsed = await isMaxChipUsedElsewhereInPhase(club, gw);
         if (alreadyUsed) {
@@ -96,7 +94,6 @@ exports.handler = async (event) => {
           };
         }
         record = { maxChip: true, submittedAt: new Date().toISOString() };
-        captainLabel = "Max Captain chip";
       } else {
         if (!body.managerEntry) {
           return {
@@ -115,23 +112,9 @@ exports.handler = async (event) => {
           };
         }
         record = { managerEntry: body.managerEntry, submittedAt: new Date().toISOString() };
-        captainLabel = `${chosen.player_name} (${chosen.entry_name})`;
       }
 
       await setCaptainRecord(club, gw, record);
-
-      const adminEmail = process.env.ADMIN_EMAIL;
-      if (adminEmail) {
-        try {
-          await sendEmail({
-            to: adminEmail,
-            subject: `SFFC Captain Submitted \u2014 ${club}, GW${gw}${isAdmin ? " (admin override)" : ""}`,
-            html: `<p><strong>${club}</strong> submitted their GW${gw} captain${isAdmin ? " <em>(via admin override)</em>" : ""}:</p><p>${captainLabel}</p><p style="color:#888;font-size:12px;">Submitted at ${new Date().toLocaleString()}</p>`,
-          });
-        } catch (err) {
-          console.error("Confirmation email failed:", err.message);
-        }
-      }
 
       return {
         statusCode: 200,
