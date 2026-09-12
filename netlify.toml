@@ -87,13 +87,3 @@
   from = "/api/fpl-chips"
   to = "/.netlify/functions/fpl-chips"
   status = 200
-
-[[redirects]]
-  from = "/api/player-ownership"
-  to = "/.netlify/functions/player-ownership"
-  status = 200
-
-[[redirects]]
-  from = "/api/progress-detail"
-  to = "/.netlify/functions/progress-detail"
-  status = 200
