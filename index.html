@@ -2116,7 +2116,7 @@
         let nameHtml;
         if (!r.locked) {
           nameHtml = r.record
-            ? '<span class="captain-name pending">Submitted &mdash; hidden until deadline</span>'
+            ? '<span class="captain-name pending">To be announced</span>'
             : '<span class="captain-name pending">Not submitted yet</span>';
         } else if (r.record && r.record.maxChip) {
           nameHtml = 'Max Captain chip active <span class="captain-chip-badge">MAX</span>';
@@ -2439,10 +2439,19 @@
     loadSubmitCaptainForm();
 
     const fixturesGWSelect = document.getElementById('fixturesGW');
-    if ([...fixturesGWSelect.options].some(o => o.value == gw)) {
+    const nextGW = gw + 1;
+    if ([...fixturesGWSelect.options].some(o => o.value == nextGW)) {
+      fixturesGWSelect.value = nextGW;
+    } else if ([...fixturesGWSelect.options].some(o => o.value == gw)) {
       fixturesGWSelect.value = gw;
     }
     loadFixtures();
+
+    const captainPicksGWSelect = document.getElementById('captainPicksGW');
+    if ([...captainPicksGWSelect.options].some(o => o.value == gw)) {
+      captainPicksGWSelect.value = gw;
+    }
+    loadCaptainPicks();
   });
   document.getElementById('chipUsagePhase').addEventListener('change', loadChipUsage);
   loadChipUsage();
