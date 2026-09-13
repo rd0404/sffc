@@ -1194,7 +1194,6 @@
 <main>
 
   <section id="standings" class="panel">
-    <p class="panel-intro">Computed live from every finished gameweek within the phase — 3 points for a win, 1 for a draw. Phase 2 starts fresh at GW20; it doesn't carry over Phase 1's table.</p>
     <div class="filter-row">
       <select id="standingsPhase">
         <option value="1">Phase 1 (GW1-19)</option>
@@ -1205,7 +1204,6 @@
   </section>
 
   <section id="results" class="panel active">
-    <p class="panel-intro">Matchups derived automatically from the real Premier League fixture list.</p>
     <div class="filter-row">
       <select id="resultsPhase">
         <option value="1">Phase 1</option>
@@ -1218,7 +1216,6 @@
   </section>
 
   <section id="captainpicks" class="panel">
-    <p class="panel-intro">Who each club captained this gameweek &mdash; their points are doubled in the club's total. Picks stay hidden until that gameweek's deadline passes, so no one can copy a rival's choice; no submission on file falls back to the rulebook default: the lowest scorer that week is auto-captained.</p>
     <div class="filter-row">
       <select id="captainPicksPhase">
         <option value="1">Phase 1</option>
@@ -1243,7 +1240,6 @@
   </section>
 
   <section id="totw" class="panel">
-    <p class="panel-intro">The gameweek's top-scoring team, plus the highest and lowest scoring individual managers league-wide.</p>
     <div class="filter-row">
       <select id="totwPhase">
         <option value="1">Phase 1</option>
@@ -1283,7 +1279,6 @@
   </section>
 
   <section id="teamlinks" class="panel">
-    <p class="panel-intro">Every club's dedicated FPL mini-league &mdash; opens the official Fantasy Premier League standings page for that league.</p>
     <div id="teamLinksContent"></div>
   </section>
 
@@ -1316,7 +1311,6 @@
   </section>
 
   <section id="chipusage" class="panel">
-    <p class="panel-intro">Which clubs have used their once-per-phase Max Captain chip, and in which gameweek.</p>
     <div class="filter-row">
       <select id="chipUsagePhase">
         <option value="1">Phase 1</option>
@@ -1340,7 +1334,6 @@
   </section>
 
   <section id="captaincount" class="panel">
-    <p class="panel-intro">How many times each member has been captain within the phase &mdash; the rulebook requires at least 2 per member per phase. Max Captain chip weeks don't count toward any member.</p>
     <div class="filter-row">
       <select id="captainCountPhase">
         <option value="1">Phase 1</option>
@@ -2491,6 +2484,18 @@
       captainPicksGWSelect.value = gw;
     }
     loadCaptainPicks();
+
+    const progressGWSelect = document.getElementById('progressGW');
+    if ([...progressGWSelect.options].some(o => o.value == gw)) {
+      progressGWSelect.value = gw;
+    }
+    loadProgress();
+
+    const ownershipGWSelect = document.getElementById('ownershipGW');
+    if ([...ownershipGWSelect.options].some(o => o.value == gw)) {
+      ownershipGWSelect.value = gw;
+    }
+    loadOwnership();
   });
   document.getElementById('chipUsagePhase').addEventListener('change', loadChipUsage);
   loadChipUsage();
