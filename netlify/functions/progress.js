@@ -2,7 +2,9 @@
 //
 // For every SFFC team, counts how many of the 6 managers' STARTING XI
 // players have played vs are still to play in the given (or current)
-// gameweek. Works for past gameweeks too.
+// gameweek. Works for past gameweeks too — a "finished" fixture just
+// means everyone in it already played, so the counts settle at their
+// final values once a gameweek is over.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
@@ -40,7 +42,7 @@ exports.handler = async (evt) => {
           for (const p of starters) {
             const clubId = clubOfElement[p.element];
             const status = fixtureStatusOf[clubId];
-            if (status === "live" || status === "finished") {
+            if (status === "live" || status === "provisional" || status === "finished") {
               played += 1;
             } else {
               left += 1;
