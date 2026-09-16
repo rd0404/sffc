@@ -95,3 +95,8 @@
   from = "/api/backup-data"
   to = "/.netlify/functions/backup-data"
   status = 200
+
+[[redirects]]
+  from = "/api/test-email"
+  to = "/.netlify/functions/test-email"
+  status = 200
