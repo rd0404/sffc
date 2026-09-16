@@ -1,19 +1,21 @@
-// Netlify Function — /.netlify/functions/captain
+// GET  ?club=Arsenal&event=3  -> the club's 6 managers + current submission.
+// POST { club, event, managerEntry, passkey, email? } -> submit a manual pick.
+// POST { club, event, maxChip: true, passkey, email? } -> use Max Captain chip.
+// POST with adminPasskey instead of passkey bypasses both the deadline lock
+// and the per-club passkey check.
 //
-// GET  ?club=Arsenal&event=3  -> the club's 6 managers + current submission
-//                                + whether this gameweek's deadline has passed.
-// POST { club, event, managerEntry, passkey } -> submit a manual captain pick.
-// POST { club, event, maxChip: true, passkey } -> use the Max Captain chip.
-//
-// Submissions lock at the SAME deadline as the real FPL gameweek deadline
-// (bootstrap-static's deadline_time) — once it passes, no more changes,
-// matching how FPL itself locks team changes before kickoff.
+// If ADMIN_EMAIL is set, every successful submission emails the admin.
+// If the submitter also includes an "email" field, they get their own
+// confirmation copy too — there's no permanent manager email list, so
+// this only works when the submitter types their address in that turn.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { getCaptainRecord, setCaptainRecord } = require("../../lib/captainStore");
 const teamPasskeys = require("../../lib/teamPasskeys");
+const teamEmails = require("../../lib/teamEmails");
 const { getPhaseRange } = require("../../lib/phase");
+const { sendEmail } = require("../../lib/emailClient");
 
 async function getDeadlineInfo(gw) {
   const bootstrap = await fplClient.getBootstrap();
@@ -84,6 +86,7 @@ exports.handler = async (event) => {
       }
 
       let record;
+      let captainLabel;
       if (body.maxChip) {
         const alreadyUsed = await isMaxChipUsedElsewhereInPhase(club, gw);
         if (alreadyUsed) {
@@ -94,6 +97,7 @@ exports.handler = async (event) => {
           };
         }
         record = { maxChip: true, submittedAt: new Date().toISOString() };
+        captainLabel = "Max Captain chip";
       } else {
         if (!body.managerEntry) {
           return {
@@ -112,9 +116,28 @@ exports.handler = async (event) => {
           };
         }
         record = { managerEntry: body.managerEntry, submittedAt: new Date().toISOString() };
+        captainLabel = `${chosen.player_name} (${chosen.entry_name})`;
       }
 
       await setCaptainRecord(club, gw, record);
+
+      // Email confirmations — best-effort, never block the actual submission.
+      const recipients = new Set();
+      if (process.env.ADMIN_EMAIL) recipients.add(process.env.ADMIN_EMAIL);
+      if (teamEmails[club]) recipients.add(teamEmails[club]);
+      if (body.email) recipients.add(body.email);
+
+      if (recipients.size) {
+        try {
+          await sendEmail({
+            to: [...recipients],
+            subject: `SFFC Captain Submitted \u2014 ${club}, GW${gw}${isAdmin ? " (admin override)" : ""}`,
+            html: `<p><strong>${club}</strong> submitted their GW${gw} captain${isAdmin ? " <em>(via admin override)</em>" : ""}:</p><p>${captainLabel}</p><p style="color:#888;font-size:12px;">Submitted at ${new Date().toLocaleString()}</p>`,
+          });
+        } catch (err) {
+          console.error("Confirmation email failed:", err.message);
+        }
+      }
 
       return {
         statusCode: 200,
@@ -123,7 +146,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // GET
     const params = event.queryStringParameters || {};
     const club = params.club;
     const gw = params.event ? parseInt(params.event, 10) : null;
