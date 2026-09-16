@@ -6,6 +6,9 @@
 [functions."snapshot-gameweek-background"]
   schedule = "@hourly"
 
+[functions."deadline-summary-background"]
+  schedule = "@hourly"
+
 # Optional but handy: lets you call /api/gameweek instead of the longer
 # default /.netlify/functions/gameweek path.
 [[redirects]]
@@ -86,4 +89,9 @@
 [[redirects]]
   from = "/api/fpl-chips"
   to = "/.netlify/functions/fpl-chips"
+  status = 200
+
+[[redirects]]
+  from = "/api/backup-data"
+  to = "/.netlify/functions/backup-data"
   status = 200
