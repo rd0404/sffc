@@ -100,3 +100,8 @@
   from = "/api/test-email"
   to = "/.netlify/functions/test-email"
   status = 200
+
+[[redirects]]
+  from = "/api/clear-captains"
+  to = "/.netlify/functions/clear-captains"
+  status = 200
