@@ -1277,6 +1277,12 @@
       <span class="compare-vs">vs</span>
       <span class="compare-opponent" id="ownershipOpponent">&mdash;</span>
     </div>
+    <div class="filter-row">
+      <select id="ownershipView">
+        <option value="differential">Differentials only</option>
+        <option value="full">Full ownership only</option>
+      </select>
+    </div>
     <div id="ownershipContent"><div class="state-msg">Pick a gameweek and a team.</div></div>
   </section>
 
@@ -1847,6 +1853,9 @@
       const opponentData = progressData.teams.find(t => t.club === opponentClub);
 
       let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${gwData.event}</div>`;
+      if (progressData.isFallback) {
+        html += `<p class="settling-note">GW${gwData.event}'s deadline hasn't passed yet, so squads aren't locked in \u2014 showing GW${progressData.dataEvent}'s actual squads as a preview.</p>`;
+      }
       html += '<div class="managers-cols">';
       html += `<div>${progressSideHTML(teamData, 'team')}</div>`;
       html += `<div>${progressSideHTML(opponentData, 'opponent')}</div>`;
@@ -1945,36 +1954,43 @@
       const clubOnly = clubRows.filter(r => !opponentNames.has(r.name));
       const opponentOnly = opponentRows.filter(r => !clubNames.has(r.name));
 
-      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${gwData.event}</div>`;
+      const view = document.getElementById('ownershipView').value;
 
-      if (clubOnly.length || opponentOnly.length) {
-        html += '<div class="managers-behind-head">Differentials</div>';
-        html += '<div class="managers-behind-sub">Players owned on one side but not the other.</div>';
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${gwData.event}</div>`;
+      if (clubData.isFallback) {
+        html += `<p class="settling-note">GW${gwData.event}'s deadline hasn't passed yet, so squads aren't locked in \u2014 showing GW${clubData.dataEvent}'s actual squads as a preview. This will switch to real GW${gwData.event} data automatically once its deadline passes.</p>`;
+      }
+
+      if (view === 'differential') {
+        if (clubOnly.length || opponentOnly.length) {
+          html += '<div class="managers-behind-sub">Players owned on one side but not the other.</div>';
+          html += '<div class="managers-cols">';
+          html += `<div>
+            <div class="managers-col-head">${club} only</div>
+            ${ownershipTableHTML(clubOnly, clubData.managers.length)}
+          </div>`;
+          html += `<div>
+            <div class="managers-col-head">${opponentClub} only</div>
+            ${ownershipTableHTML(opponentOnly, opponentData.managers.length)}
+          </div>`;
+          html += '</div>';
+        } else {
+          html += '<div class="state-msg">No differentials \u2014 every player owned on one side is also owned on the other.</div>';
+        }
+      } else {
         html += '<div class="managers-cols">';
         html += `<div>
-          <div class="managers-col-head">${club} only</div>
-          ${ownershipTableHTML(clubOnly, clubData.managers.length)}
+          <div class="managers-col-head">${club}</div>
+          <div class="managers-col-sub">${clubData.managers.length} managers</div>
+          ${ownershipTableHTML(clubRows, clubData.managers.length)}
         </div>`;
         html += `<div>
-          <div class="managers-col-head">${opponentClub} only</div>
-          ${ownershipTableHTML(opponentOnly, opponentData.managers.length)}
+          <div class="managers-col-head">${opponentClub}</div>
+          <div class="managers-col-sub">${opponentData.managers.length} managers</div>
+          ${ownershipTableHTML(opponentRows, opponentData.managers.length)}
         </div>`;
         html += '</div>';
       }
-
-      html += '<div class="managers-behind-head" style="margin-top:22px;">Full Ownership</div>';
-      html += '<div class="managers-cols">';
-      html += `<div>
-        <div class="managers-col-head">${club}</div>
-        <div class="managers-col-sub">${clubData.managers.length} managers</div>
-        ${ownershipTableHTML(clubRows, clubData.managers.length)}
-      </div>`;
-      html += `<div>
-        <div class="managers-col-head">${opponentClub}</div>
-        <div class="managers-col-sub">${opponentData.managers.length} managers</div>
-        ${ownershipTableHTML(opponentRows, opponentData.managers.length)}
-      </div>`;
-      html += '</div>';
 
       el.innerHTML = html;
     } catch (err) {
@@ -2521,6 +2537,7 @@
   document.getElementById('statsRecordsPhase').addEventListener('change', loadStatsRecords);
   document.getElementById('ownershipGW').addEventListener('change', loadOwnership);
   document.getElementById('ownershipClub').addEventListener('change', loadOwnership);
+  document.getElementById('ownershipView').addEventListener('change', loadOwnership);
 
   wirePhaseGW('resultsPhase', 'resultsGW', loadResults);
   wirePhaseGW('totwPhase', 'totwGW', loadTeamOfWeek);
