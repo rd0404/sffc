@@ -1266,16 +1266,18 @@
   </section>
 
   <section id="ownership" class="panel">
-    <p class="panel-intro">Every player each of a club's 6 managers currently has, pulled live from their FPL squad.</p>
-    <div class="filter-row">
+    <p class="panel-intro">Pick a gameweek and a team &mdash; the opponent auto-fills from that week's actual fixture, so you can compare who owns which players on both sides.</p>
+    <div class="compare-controls">
       <select id="ownershipPhase">
         <option value="1">Phase 1</option>
         <option value="2">Phase 2</option>
       </select>
       <select id="ownershipGW"></select>
       <select id="ownershipClub"></select>
+      <span class="compare-vs">vs</span>
+      <span class="compare-opponent" id="ownershipOpponent">&mdash;</span>
     </div>
-    <div id="ownershipContent"><div class="state-msg">Pick a gameweek and a club.</div></div>
+    <div id="ownershipContent"><div class="state-msg">Pick a gameweek and a team.</div></div>
   </section>
 
   <section id="teamlinks" class="panel">
@@ -1891,31 +1893,70 @@
     return Object.values(map).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }
 
+  function ownershipTableHTML(rows, totalManagers) {
+    let html = '<div class="table-scroll"><table class="ownership-table"><thead><tr><th>Player</th><th>Club</th><th class="num">Owned By</th></tr></thead><tbody>';
+    if (!rows.length) {
+      html += '<tr><td colspan="3"><div class="state-msg">No players found.</div></td></tr>';
+    }
+    rows.forEach(r => {
+      html += `<tr>
+        <td class="club-cell">${r.name}</td>
+        <td class="ownership-realclub">${r.realClub || ''}</td>
+        <td class="num scoreboard-nums ownership-count">${r.count}/${totalManagers}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
   async function loadOwnership() {
     const gw = document.getElementById('ownershipGW').value;
     const club = document.getElementById('ownershipClub').value;
+    const opponentEl = document.getElementById('ownershipOpponent');
     const el = document.getElementById('ownershipContent');
     if (!gw || !club) {
+      opponentEl.textContent = '\u2014';
       el.innerHTML = '<div class="state-msg">Pick a gameweek and a team.</div>';
       return;
     }
+    opponentEl.textContent = '\u2026';
     el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
-      const data = await fetchJSON(`/api/squad-detail?club=${encodeURIComponent(club)}&event=${gw}`);
-      const totalManagers = data.managers.length;
-      const rows = aggregateOwnership(data.managers);
-      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
-      html += '<div class="table-scroll"><table class="ownership-table"><thead><tr><th>Player</th><th>Club</th><th class="num">Owned By</th></tr></thead><tbody>';
-      rows.forEach(r => {
-        html += `<tr>
-          <td class="club-cell">${r.name}</td>
-          <td class="ownership-realclub">${r.realClub || ''}</td>
-          <td class="num scoreboard-nums ownership-count">${r.count}/${totalManagers}</td>
-        </tr>`;
-      });
-      html += '</tbody></table></div>';
+      const gwData = await fetchJSON(`/api/gameweek?event=${gw}`);
+      const match = gwData.matches.find(m => m.home.club === club || m.away.club === club);
+      if (!match) {
+        opponentEl.textContent = '\u2014';
+        el.innerHTML = `<div class="state-msg">No fixture for ${club} in GW${gw} (blank gameweek).</div>`;
+        return;
+      }
+      const opponentClub = match.home.club === club ? match.away.club : match.home.club;
+      opponentEl.textContent = opponentClub;
+
+      const [clubData, opponentData] = await Promise.all([
+        fetchJSON(`/api/squad-detail?club=${encodeURIComponent(club)}&event=${gw}`),
+        fetchJSON(`/api/squad-detail?club=${encodeURIComponent(opponentClub)}&event=${gw}`),
+      ]);
+
+      const clubRows = aggregateOwnership(clubData.managers);
+      const opponentRows = aggregateOwnership(opponentData.managers);
+
+      let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${gwData.event}</div>`;
+      html += '<div class="managers-cols">';
+      html += `<div>
+        <div class="managers-col-head">${club}</div>
+        <div class="managers-col-sub">${clubData.managers.length} managers</div>
+        ${ownershipTableHTML(clubRows, clubData.managers.length)}
+      </div>`;
+      html += `<div>
+        <div class="managers-col-head">${opponentClub}</div>
+        <div class="managers-col-sub">${opponentData.managers.length} managers</div>
+        ${ownershipTableHTML(opponentRows, opponentData.managers.length)}
+      </div>`;
+      html += '</div>';
+
       el.innerHTML = html;
     } catch (err) {
+      opponentEl.textContent = '\u2014';
       el.innerHTML = `<div class="state-msg error">Couldn't load ownership &mdash; ${err.message}</div>`;
     }
   }
