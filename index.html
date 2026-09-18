@@ -1940,7 +1940,29 @@
       const clubRows = aggregateOwnership(clubData.managers);
       const opponentRows = aggregateOwnership(opponentData.managers);
 
+      const clubNames = new Set(clubRows.map(r => r.name));
+      const opponentNames = new Set(opponentRows.map(r => r.name));
+      const clubOnly = clubRows.filter(r => !opponentNames.has(r.name));
+      const opponentOnly = opponentRows.filter(r => !clubNames.has(r.name));
+
       let html = `<div class="live-flag"><span class="live-dot"></span>Gameweek ${gwData.event}</div>`;
+
+      if (clubOnly.length || opponentOnly.length) {
+        html += '<div class="managers-behind-head">Differentials</div>';
+        html += '<div class="managers-behind-sub">Players owned on one side but not the other.</div>';
+        html += '<div class="managers-cols">';
+        html += `<div>
+          <div class="managers-col-head">${club} only</div>
+          ${ownershipTableHTML(clubOnly, clubData.managers.length)}
+        </div>`;
+        html += `<div>
+          <div class="managers-col-head">${opponentClub} only</div>
+          ${ownershipTableHTML(opponentOnly, opponentData.managers.length)}
+        </div>`;
+        html += '</div>';
+      }
+
+      html += '<div class="managers-behind-head" style="margin-top:22px;">Full Ownership</div>';
       html += '<div class="managers-cols">';
       html += `<div>
         <div class="managers-col-head">${club}</div>
