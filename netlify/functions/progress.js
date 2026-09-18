@@ -2,13 +2,13 @@
 //
 // For every SFFC team, counts how many of the 6 managers' STARTING XI
 // players have played vs are still to play in the given (or current)
-// gameweek. Works for past gameweeks too — a "finished" fixture just
-// means everyone in it already played, so the counts settle at their
-// final values once a gameweek is over.
+// gameweek. Falls back to the latest deadline-passed gameweek's squads
+// when the requested one hasn't locked in yet (see lib/pickEvent.js).
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
+const { getEffectivePickEvent } = require("../../lib/pickEvent");
 
 exports.handler = async (evt) => {
   try {
@@ -16,6 +16,8 @@ exports.handler = async (evt) => {
     const bootstrap = await fplClient.getBootstrap();
     const currentEvent = fplClient.getCurrentEvent(bootstrap);
     const requestedEvent = params.event ? parseInt(params.event, 10) : currentEvent;
+
+    const { pickEvent, isFallback } = getEffectivePickEvent(bootstrap, requestedEvent);
 
     const fixtures = await fplClient.getFixtures(requestedEvent);
     const { fixtureStatusOf } = buildFixtureLookups(fixtures);
@@ -34,7 +36,7 @@ exports.handler = async (evt) => {
         let left = 0;
 
         const allPicks = await Promise.all(
-          entryIds.map((id) => fplClient.getEntryPicks(id, requestedEvent))
+          entryIds.map((id) => fplClient.getEntryPicks(id, pickEvent))
         );
 
         for (const picksData of allPicks) {
@@ -64,6 +66,8 @@ exports.handler = async (evt) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         event: requestedEvent,
+        dataEvent: pickEvent,
+        isFallback,
         isCurrent: requestedEvent === currentEvent,
         teams: teamsOut,
       }),
