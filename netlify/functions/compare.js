@@ -1,9 +1,14 @@
+// Netlify Function — GET /.netlify/functions/compare?club=Arsenal&event=3
+//
+// Powers the Compare Teams tab, using TRUE live scoring (see
+// lib/managerData.js) for the current gameweek.
+
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
-const { getClubScoreWithCaptain } = require("../../lib/managerData");
+const { getClubScoreWithCaptain, getLiveElementsMap } = require("../../lib/managerData");
 
 exports.handler = async (event) => {
   try {
@@ -52,9 +57,14 @@ exports.handler = async (event) => {
       return standingsCache[team.club];
     }
 
+    let liveElementsMap = null;
+    if (requestedEvent === currentEvent) {
+      liveElementsMap = await getLiveElementsMap(requestedEvent);
+    }
+
     const [clubResult, opponentResult] = await Promise.all([
-      getClubScoreWithCaptain(clubTeam, requestedEvent, currentEvent, getStandings),
-      getClubScoreWithCaptain(opponentTeam, requestedEvent, currentEvent, getStandings),
+      getClubScoreWithCaptain(clubTeam, requestedEvent, currentEvent, getStandings, liveElementsMap),
+      getClubScoreWithCaptain(opponentTeam, requestedEvent, currentEvent, getStandings, liveElementsMap),
     ]);
 
     function withCaptainFlag(managers, captainEntry) {
