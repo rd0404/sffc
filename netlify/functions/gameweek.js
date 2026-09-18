@@ -1,7 +1,14 @@
+// Netlify Function — GET /.netlify/functions/gameweek?event=N
+//
+// Returns the given gameweek's (or current, if omitted) fixture-derived
+// matchups and scores for all 20 SFFC teams, with the captain doubling
+// rule applied, and TRUE minute-by-minute live scoring for the current
+// gameweek (see lib/managerData.js).
+
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
-const { getClubScoreWithCaptain } = require("../../lib/managerData");
+const { getClubScoreWithCaptain, getLiveElementsMap } = require("../../lib/managerData");
 
 exports.handler = async (evt) => {
   try {
@@ -21,6 +28,11 @@ exports.handler = async (evt) => {
       return standingsCache[team.club];
     }
 
+    let liveElementsMap = null;
+    if (requestedEvent === currentEvent) {
+      liveElementsMap = await getLiveElementsMap(requestedEvent);
+    }
+
     const resultByClub = {};
     await Promise.all(
       teamsConfig.map(async (team) => {
@@ -28,7 +40,8 @@ exports.handler = async (evt) => {
           team,
           requestedEvent,
           currentEvent,
-          getStandings
+          getStandings,
+          liveElementsMap
         );
       })
     );
