@@ -1,12 +1,12 @@
 // Netlify Function — GET /.netlify/functions/team-of-week?event=N
 //
-// For the given (or current) gameweek: the single top-scoring SFFC team,
-// plus the top 5 and bottom 5 individual managers across all 120 managers
-// league-wide, ranked by their own gameweek points.
+// Top-scoring team plus top/bottom 5 managers, using TRUE live scoring
+// (see lib/managerData.js) for the current gameweek. No captain
+// doubling here, by design — plain sum only.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
-const { getClubScoreForEvent, getManagerBreakdown } = require("../../lib/managerData");
+const { getClubScoreForEvent, getManagerBreakdown, getLiveElementsMap } = require("../../lib/managerData");
 
 exports.handler = async (evt) => {
   try {
@@ -23,6 +23,11 @@ exports.handler = async (evt) => {
       return standingsCache[team.club];
     }
 
+    let liveElementsMap = null;
+    if (requestedEvent === currentEvent) {
+      liveElementsMap = await getLiveElementsMap(requestedEvent);
+    }
+
     const clubScores = [];
     let allManagers = [];
 
@@ -30,8 +35,8 @@ exports.handler = async (evt) => {
       teamsConfig.map(async (team) => {
         const standingsData = await getStandings(team);
         const [score, managers] = await Promise.all([
-          getClubScoreForEvent(team, requestedEvent, currentEvent, getStandings),
-          getManagerBreakdown(team, requestedEvent, currentEvent, standingsData),
+          getClubScoreForEvent(team, requestedEvent, currentEvent, getStandings, liveElementsMap),
+          getManagerBreakdown(team, requestedEvent, currentEvent, standingsData, liveElementsMap),
         ]);
         clubScores.push({ club: team.club, score });
         allManagers = allManagers.concat(managers);
