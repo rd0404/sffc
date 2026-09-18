@@ -105,3 +105,8 @@
   from = "/api/clear-captains"
   to = "/.netlify/functions/clear-captains"
   status = 200
+
+[[redirects]]
+  from = "/api/admin-captains"
+  to = "/.netlify/functions/admin-captains"
+  status = 200
