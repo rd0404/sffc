@@ -10,6 +10,10 @@ const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { getClubScoreWithCaptain, getLiveElementsMap } = require("../../lib/managerData");
 
+function badgeUrl(code) {
+  return `https://resources.premierleague.com/premierleague/badges/50/t${code}.png`;
+}
+
 exports.handler = async (evt) => {
   try {
     const params = evt.queryStringParameters || {};
@@ -19,6 +23,11 @@ exports.handler = async (evt) => {
 
     const fixtures = await fplClient.getFixtures(requestedEvent);
     const { opponentOf, fixtureStatusOf } = buildFixtureLookups(fixtures);
+
+    const teamCodeByFplId = {};
+    bootstrap.teams.forEach((t) => {
+      teamCodeByFplId[t.id] = t.code;
+    });
 
     const standingsCache = {};
     async function getStandings(team) {
@@ -67,12 +76,14 @@ exports.handler = async (evt) => {
       matches.push({
         home: {
           club: homeTeam.club,
+          badge: teamCodeByFplId[homeId] ? badgeUrl(teamCodeByFplId[homeId]) : null,
           score: homeResult.total,
           captainEntry: homeResult.captainEntry,
           usedMaxChip: homeResult.usedMaxChip,
         },
         away: {
           club: awayTeam.club,
+          badge: teamCodeByFplId[awayId] ? badgeUrl(teamCodeByFplId[awayId]) : null,
           score: awayResult.total,
           captainEntry: awayResult.captainEntry,
           usedMaxChip: awayResult.usedMaxChip,
