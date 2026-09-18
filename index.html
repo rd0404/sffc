@@ -2166,15 +2166,27 @@
   }
 
   function renderCaptainForm(el, { gw, club, data, chipUnavailable, usedGWThisPhase, adminMode }) {
-    const currentEntry = data.record && data.record.managerEntry ? data.record.managerEntry : null;
-    const currentMaxChip = !!(data.record && data.record.maxChip);
+    // Viewing this form never required a passkey (only submitting does),
+    // so revealing the current pick here would let anyone browse any
+    // club and see their captain before the deadline — defeating the
+    // whole point of hiding picks on Captain Picks. Only reveal the
+    // actual current selection in adminMode (which only appears after
+    // the deadline anyway, via Admin Override).
+    const currentEntry = adminMode && data.record && data.record.managerEntry ? data.record.managerEntry : null;
+    const currentMaxChip = adminMode && !!(data.record && data.record.maxChip);
     const deadlineStr = formatDeadline(data.deadlineTime);
 
-    let statusLine = `Deadline: ${deadlineStr}. No captain submitted yet for this gameweek.`;
-    if (currentMaxChip) statusLine = `Deadline: ${deadlineStr}. Currently using the Max Captain chip.`;
-    else if (currentEntry) {
-      const m = data.managers.find(mgr => mgr.entry === currentEntry);
-      statusLine = `Deadline: ${deadlineStr}. Currently submitted: ${m ? m.managerName : 'Unknown'}.`;
+    let statusLine = adminMode
+      ? `Deadline: ${deadlineStr}.`
+      : `Deadline: ${deadlineStr}. Picks stay hidden until the deadline \u2014 pick your member below to submit or change your club's captain.`;
+    if (adminMode) {
+      if (currentMaxChip) statusLine = `Deadline: ${deadlineStr}. Currently using the Max Captain chip.`;
+      else if (currentEntry) {
+        const m = data.managers.find(mgr => mgr.entry === currentEntry);
+        statusLine = `Deadline: ${deadlineStr}. Currently submitted: ${m ? m.managerName : 'Unknown'}.`;
+      } else {
+        statusLine = `Deadline: ${deadlineStr}. No captain submitted yet for this gameweek.`;
+      }
     }
 
     let html = `<div class="submit-form">`;
