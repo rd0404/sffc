@@ -657,6 +657,21 @@
   }
   .admin-toggle-btn:hover { border-color: var(--amber-dim); color: var(--amber-bright); }
 
+  .sub-tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-faint);
+    font-family: 'Inter', sans-serif;
+  }
+
+  .club-badge {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin: 0 6px;
+  }
+
   .settling-badge {
     display: inline-flex;
     align-items: center;
@@ -1721,11 +1736,11 @@
           vsCell = '<span class="settling-badge settling-live" title="Match in progress">vs<span class="settling-dot"></span></span>';
         }
         html += `<tr>
-          <td class="club-cell ${homeWinning ? 'win-score' : ''}">${m.home.club}</td>
+          <td class="club-cell ${homeWinning ? 'win-score' : ''}">${m.home.badge ? `<img class="club-badge" src="${m.home.badge}" alt="${m.home.club}" />` : ''}${m.home.club}</td>
           <td class="num scoreboard-nums ${homeWinning ? 'win-score' : ''}">${m.home.score}</td>
           <td class="results-vs-cell">${vsCell}</td>
           <td class="num scoreboard-nums ${awayWinning ? 'win-score' : ''}">${m.away.score}</td>
-          <td class="club-cell ${awayWinning ? 'win-score' : ''}">${m.away.club}</td>
+          <td class="club-cell ${awayWinning ? 'win-score' : ''}">${m.away.badge ? `<img class="club-badge" src="${m.away.badge}" alt="${m.away.club}" />` : ''}${m.away.club}</td>
         </tr>`;
       });
       html += '</tbody></table></div>';
@@ -1888,14 +1903,17 @@
   function aggregateOwnership(managers) {
     const map = {};
     managers.forEach(m => {
+      const starterNames = new Set(m.starters.map(p => p.name));
       const all = [...m.starters, ...m.bench];
       const seen = new Set();
       all.forEach(p => {
         if (seen.has(p.name)) return;
         seen.add(p.name);
         const key = p.name + '|' + (p.realClub || '');
-        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, owners: [] };
+        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, startingCount: 0, benchCount: 0, owners: [] };
         map[key].count += 1;
+        if (starterNames.has(p.name)) map[key].startingCount += 1;
+        else map[key].benchCount += 1;
         map[key].owners.push(m.teamName);
       });
     });
@@ -1908,10 +1926,16 @@
       html += '<tr><td colspan="3"><div class="state-msg">No players found.</div></td></tr>';
     }
     rows.forEach(r => {
+      let countCell = `${r.count}/${totalManagers}`;
+      if (r.benchCount > 0 && r.startingCount > 0) {
+        countCell = `${r.count}/${totalManagers} <span class="sub-tag">(${r.startingCount} XI, ${r.benchCount} SUB)</span>`;
+      } else if (r.benchCount > 0) {
+        countCell = `${r.count}/${totalManagers} <span class="sub-tag">(SUB)</span>`;
+      }
       html += `<tr>
         <td class="club-cell">${r.name}</td>
         <td class="ownership-realclub">${r.realClub || ''}</td>
-        <td class="num scoreboard-nums ownership-count">${r.count}/${totalManagers}</td>
+        <td class="num scoreboard-nums ownership-count">${countCell}</td>
       </tr>`;
     });
     html += '</tbody></table></div>';
@@ -2073,8 +2097,10 @@
       filtered.forEach(f => {
         const scoreStr = (f.homeScore != null && f.awayScore != null) ? `${f.homeScore} - ${f.awayScore}` : 'vs';
         const kickoffStr = f.kickoff ? new Date(f.kickoff).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        const homeBadge = f.homeBadge ? `<img class="club-badge" src="${f.homeBadge}" alt="${f.home}" />` : '';
+        const awayBadge = f.awayBadge ? `<img class="club-badge" src="${f.awayBadge}" alt="${f.away}" />` : '';
         html += `<div class="real-fixture-row">
-          <span class="real-fixture-teams">${f.home} ${scoreStr} ${f.away}</span>
+          <span class="real-fixture-teams">${f.home}${homeBadge} ${scoreStr} ${awayBadge}${f.away}</span>
           <span class="real-fixture-meta"><span class="status-badge status-${f.status}">${f.status === 'not_started' ? 'NOT STARTED' : f.status.toUpperCase()}</span>${kickoffStr}</span>
         </div>`;
       });
