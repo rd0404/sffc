@@ -2392,19 +2392,13 @@
     }
     el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
-      const [data, chipData] = await Promise.all([
-        fetchJSON(`/api/captain?club=${encodeURIComponent(club)}&event=${gw}`),
-        fetchJSON('/api/chip-usage'),
-      ]);
+      const data = await fetchJSON(`/api/captain?club=${encodeURIComponent(club)}&event=${gw}`);
       const currentEntry = data.record && data.record.managerEntry ? data.record.managerEntry : null;
       const currentMaxChip = !!(data.record && data.record.maxChip);
       const deadlineStr = formatDeadline(data.deadlineTime);
 
-      const gwNum = parseInt(gw, 10);
-      const phaseOfGW = gwNum <= 19 ? 1 : 2;
-      const chipRow = chipData.teams.find(t => t.club === club);
-      const usedGWThisPhase = chipRow ? (phaseOfGW === 2 ? chipRow.phase2Used : chipRow.phase1Used) : null;
-      const chipUnavailable = usedGWThisPhase != null && usedGWThisPhase !== gwNum;
+      const usedGWThisPhase = data.maxChipUsedInGW || null;
+      const chipUnavailable = !data.maxChipAvailable;
 
       if (data.locked) {
         let lockedLine = 'No captain was submitted for this gameweek \u2014 the lowest scorer was auto-captained.';
