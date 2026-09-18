@@ -26,15 +26,15 @@ async function getDeadlineInfo(gw) {
   return { deadlineTime, locked };
 }
 
-async function isMaxChipUsedElsewhereInPhase(club, gw) {
+async function findMaxChipUsedElsewhereInPhase(club, gw) {
   const phase = gw <= 19 ? 1 : 2;
   const [start, end] = getPhaseRange(phase);
   for (let e = start; e <= end; e++) {
     if (e === gw) continue;
     const rec = await getCaptainRecord(club, e);
-    if (rec && rec.maxChip) return true;
+    if (rec && rec.maxChip) return e;
   }
-  return false;
+  return null;
 }
 
 exports.handler = async (event) => {
@@ -88,12 +88,12 @@ exports.handler = async (event) => {
       let record;
       let captainLabel;
       if (body.maxChip) {
-        const alreadyUsed = await isMaxChipUsedElsewhereInPhase(club, gw);
-        if (alreadyUsed) {
+        const alreadyUsedAt = await findMaxChipUsedElsewhereInPhase(club, gw);
+        if (alreadyUsedAt) {
           return {
             statusCode: 400,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Max Captain chip has already been used this phase for this club" }),
+            body: JSON.stringify({ error: `Max Captain chip has already been used this phase for this club, in GW${alreadyUsedAt}` }),
           };
         }
         record = { maxChip: true, submittedAt: new Date().toISOString() };
@@ -179,7 +179,7 @@ exports.handler = async (event) => {
 
     const record = await getCaptainRecord(club, gw);
     const { deadlineTime, locked } = await getDeadlineInfo(gw);
-    const maxChipUsedElsewhere = await isMaxChipUsedElsewhereInPhase(club, gw);
+    const maxChipUsedInGW = await findMaxChipUsedElsewhereInPhase(club, gw);
 
     return {
       statusCode: 200,
@@ -191,7 +191,8 @@ exports.handler = async (event) => {
         record: record || null,
         deadlineTime,
         locked,
-        maxChipAvailable: !maxChipUsedElsewhere,
+        maxChipAvailable: !maxChipUsedInGW,
+        maxChipUsedInGW,
       }),
     };
   } catch (err) {
