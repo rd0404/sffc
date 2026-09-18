@@ -62,13 +62,20 @@ exports.handler = async (event) => {
       liveElementsMap = await getLiveElementsMap(requestedEvent);
     }
 
+    const requestedEv = bootstrap.events.find((e) => e.id === requestedEvent);
+    const locked = requestedEv ? Date.now() >= new Date(requestedEv.deadline_time).getTime() : false;
+
     const [clubResult, opponentResult] = await Promise.all([
       getClubScoreWithCaptain(clubTeam, requestedEvent, currentEvent, getStandings, liveElementsMap),
       getClubScoreWithCaptain(opponentTeam, requestedEvent, currentEvent, getStandings, liveElementsMap),
     ]);
 
+    // Captain identity (and whether Max Chip was used) stays hidden
+    // until the deadline passes — same rule as Captain Picks, so no
+    // one can peek at a rival's pick here instead.
     function withCaptainFlag(managers, captainEntry) {
-      return managers.map((m) => ({ ...m, isCaptain: m.entry === captainEntry }));
+      const revealEntry = locked ? captainEntry : null;
+      return managers.map((m) => ({ ...m, isCaptain: m.entry === revealEntry }));
     }
 
     const store = resultsStore();
@@ -95,10 +102,11 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         event: requestedEvent,
         currentEvent,
+        locked,
         club: {
           name: clubName,
           gwScore: clubResult.total,
-          usedMaxChip: clubResult.usedMaxChip,
+          usedMaxChip: locked ? clubResult.usedMaxChip : false,
           position: clubRow ? clubRow.position : null,
           tablePoints: clubRow ? clubRow.points : null,
           goalDifference: clubRow ? clubRow.scoreFor - clubRow.scoreAgainst : null,
@@ -109,7 +117,7 @@ exports.handler = async (event) => {
         opponent: {
           name: opponentTeam.club,
           gwScore: opponentResult.total,
-          usedMaxChip: opponentResult.usedMaxChip,
+          usedMaxChip: locked ? opponentResult.usedMaxChip : false,
           position: opponentRow ? opponentRow.position : null,
           tablePoints: opponentRow ? opponentRow.points : null,
           goalDifference: opponentRow ? opponentRow.scoreFor - opponentRow.scoreAgainst : null,
