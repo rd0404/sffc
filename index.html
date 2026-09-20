@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  (function() {
+    var saved = localStorage.getItem('sffc-theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SFFC Fantasy League — Season 10</title>
@@ -15,7 +22,7 @@
     --amber: #D4AF37;
     --amber-bright: #F0C75E;
     --amber-dim: #8A6F2E;
-    --win: #F0C75E;
+    --win: #3FB37F;
     --loss: #C1494A;
     --draw: #8B8D97;
     --pitch: #2E8B63;
@@ -23,6 +30,24 @@
     --text: #ECE9E2;
     --text-muted: #8B8D97;
     --text-faint: #5A5D6B;
+  }
+
+  html[data-theme="light"] {
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --surface-2: #EFEDE6;
+    --line: #DDD9CE;
+    --amber: #B8860B;
+    --amber-bright: #96690A;
+    --amber-dim: #D4AF37;
+    --win: #17643F;
+    --loss: #B23A3B;
+    --draw: #6B6D77;
+    --pitch: #1F7A50;
+    --pitch-bright: #17643F;
+    --text: #211E17;
+    --text-muted: #57544C;
+    --text-faint: #8A867B;
   }
 
   * { box-sizing: border-box; }
@@ -664,12 +689,39 @@
     font-family: 'Inter', sans-serif;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .theme-toggle-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .theme-toggle-btn:hover { border-color: var(--amber-dim); }
+
+  .club-cell-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
   .club-badge {
     width: 18px;
     height: 18px;
     object-fit: contain;
+    flex-shrink: 0;
+    display: inline-block;
     vertical-align: middle;
-    margin: 0 6px;
+    margin: 0 4px;
   }
 
   .settling-badge {
@@ -1164,7 +1216,10 @@
         <div class="season-tag">Season 10 &middot; live from the official FPL API</div>
       </div>
     </div>
-    <button class="refresh-btn" id="refreshBtn">Refresh</button>
+    <div class="header-actions">
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle light/dark mode">🌙</button>
+      <button class="refresh-btn" id="refreshBtn">Refresh</button>
+    </div>
   </div>
 </header>
 
@@ -1736,11 +1791,11 @@
           vsCell = '<span class="settling-badge settling-live" title="Match in progress">vs<span class="settling-dot"></span></span>';
         }
         html += `<tr>
-          <td class="club-cell ${homeWinning ? 'win-score' : ''}">${m.home.badge ? `<img class="club-badge" src="${m.home.badge}" alt="${m.home.club}" />` : ''}${m.home.club}</td>
+          <td class="club-cell ${homeWinning ? 'win-score' : ''}"><span class="club-cell-inner">${m.home.badge ? `<img class="club-badge" src="${m.home.badge}" alt="${m.home.club}" />` : ''}${m.home.club}</span></td>
           <td class="num scoreboard-nums ${homeWinning ? 'win-score' : ''}">${m.home.score}</td>
           <td class="results-vs-cell">${vsCell}</td>
           <td class="num scoreboard-nums ${awayWinning ? 'win-score' : ''}">${m.away.score}</td>
-          <td class="club-cell ${awayWinning ? 'win-score' : ''}">${m.away.badge ? `<img class="club-badge" src="${m.away.badge}" alt="${m.away.club}" />` : ''}${m.away.club}</td>
+          <td class="club-cell ${awayWinning ? 'win-score' : ''}"><span class="club-cell-inner">${m.away.badge ? `<img class="club-badge" src="${m.away.badge}" alt="${m.away.club}" />` : ''}${m.away.club}</span></td>
         </tr>`;
       });
       html += '</tbody></table></div>';
@@ -2527,6 +2582,19 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+  function updateThemeButton() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    document.getElementById('themeToggleBtn').textContent = current === 'light' ? '☀️' : '🌙';
+  }
+  updateThemeButton();
+  document.getElementById('themeToggleBtn').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('sffc-theme', next);
+    updateThemeButton();
+  });
 
   populateGWSelect('resultsGW');
   populateGWSelect('totwGW');
