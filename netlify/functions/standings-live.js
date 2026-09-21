@@ -6,9 +6,8 @@
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
-const { buildFixtureLookups } = require("../../lib/fixtures");
 const { computeMatchResults } = require("../../lib/matchResults");
-const { getClubScoreWithCaptain, getLiveElementsMap } = require("../../lib/managerData");
+const { getClubScoreWithCaptain, buildLiveContext } = require("../../lib/managerData");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
 const { getPhaseRange, getPhaseForEvent } = require("../../lib/phase");
@@ -44,8 +43,8 @@ exports.handler = async (evt) => {
     let settlingStatusByClub = {};
 
     if (getPhaseForEvent(currentEvent) === phase && !snapshottedEvents.has(currentEvent)) {
-      const fixtures = await fplClient.getFixtures(currentEvent);
-      const { opponentOf, fixtureStatusOf } = buildFixtureLookups(fixtures);
+      const liveContext = await buildLiveContext(bootstrap, currentEvent);
+      const { opponentOf, fixtureStatusOf } = liveContext;
 
       const standingsCache = {};
       async function getStandings(team) {
@@ -55,12 +54,10 @@ exports.handler = async (evt) => {
         return standingsCache[team.club];
       }
 
-      const liveElementsMap = await getLiveElementsMap(currentEvent);
-
       const clubScore = {};
       await Promise.all(
         teamsConfig.map(async (team) => {
-          const result = await getClubScoreWithCaptain(team, currentEvent, currentEvent, getStandings, liveElementsMap);
+          const result = await getClubScoreWithCaptain(team, currentEvent, currentEvent, getStandings, liveContext);
           clubScore[team.fplClubId] = result.total;
         })
       );
