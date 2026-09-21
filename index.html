@@ -1201,6 +1201,7 @@
     .submit-option-label, .submit-option-sub { word-break: break-word; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -1270,6 +1271,7 @@
         <option value="2">Phase 2 (GW20-38)</option>
       </select>
     </div>
+    <button class="admin-toggle-btn" id="standingsShareBtn" style="margin-bottom:12px;">📸 Share Screenshot</button>
     <div id="standingsContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
@@ -1282,6 +1284,7 @@
       <select id="resultsGW"><option value="">Current GW</option></select>
       <input type="text" id="resultsSearch" placeholder="Search team&hellip;" />
     </div>
+    <button class="admin-toggle-btn" id="resultsShareBtn" style="margin-bottom:12px;">📸 Share Screenshot</button>
     <div id="resultsContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
@@ -1317,6 +1320,7 @@
       </select>
       <select id="totwGW"><option value="">Current GW</option></select>
     </div>
+    <button class="admin-toggle-btn" id="totwShareBtn" style="margin-bottom:12px;">📸 Share Screenshot</button>
     <div id="totwContent"><div class="state-msg">Loading&hellip;</div></div>
   </section>
 
@@ -1619,6 +1623,44 @@
       closeDrawer();
     });
   });
+
+  async function shareScreenshot(elementId, filename, btn) {
+    const el = document.getElementById(elementId);
+    if (!el || typeof html2canvas === 'undefined') return;
+    const originalText = btn ? btn.textContent : null;
+    if (btn) { btn.textContent = 'Capturing\u2026'; btn.disabled = true; }
+    try {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      const canvas = await html2canvas(el, { backgroundColor: bg, useCORS: true, scale: 2 });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], filename + '.png', { type: 'image/png' });
+        let shared = false;
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: filename });
+            shared = true;
+          } catch (e) {
+            // user cancelled, or share failed — fall through to download
+          }
+        }
+        if (!shared) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename + '.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+        if (btn) { btn.textContent = originalText; btn.disabled = false; }
+      }, 'image/png');
+    } catch (err) {
+      if (btn) { btn.textContent = originalText; btn.disabled = false; }
+      alert("Couldn't capture screenshot: " + err.message);
+    }
+  }
 
   async function fetchJSON(url) {
     const res = await fetch(url);
@@ -2582,6 +2624,16 @@
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+  document.getElementById('standingsShareBtn').addEventListener('click', (e) => {
+    shareScreenshot('standingsContent', 'SFFC-Standings', e.target);
+  });
+  document.getElementById('resultsShareBtn').addEventListener('click', (e) => {
+    shareScreenshot('resultsContent', 'SFFC-Results', e.target);
+  });
+  document.getElementById('totwShareBtn').addEventListener('click', (e) => {
+    shareScreenshot('totwContent', 'SFFC-TeamOfTheWeek', e.target);
+  });
 
   function updateThemeButton() {
     const current = document.documentElement.getAttribute('data-theme') || 'dark';
