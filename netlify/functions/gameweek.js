@@ -8,7 +8,7 @@
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
-const { getClubScoreWithCaptain, getLiveElementsMap } = require("../../lib/managerData");
+const { getClubScoreWithCaptain, buildLiveContext } = require("../../lib/managerData");
 
 function badgeUrl(code) {
   return `https://resources.premierleague.com/premierleague/badges/50/t${code}.png`;
@@ -37,9 +37,9 @@ exports.handler = async (evt) => {
       return standingsCache[team.club];
     }
 
-    let liveElementsMap = null;
+    let liveContext = null;
     if (requestedEvent === currentEvent) {
-      liveElementsMap = await getLiveElementsMap(requestedEvent);
+      liveContext = await buildLiveContext(bootstrap, requestedEvent);
     }
 
     const resultByClub = {};
@@ -50,7 +50,7 @@ exports.handler = async (evt) => {
           requestedEvent,
           currentEvent,
           getStandings,
-          liveElementsMap
+          liveContext
         );
       })
     );
