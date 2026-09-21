@@ -8,7 +8,7 @@ const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { resultsStore } = require("../../lib/blobStore");
 const { buildTable } = require("../../lib/standingsCalc");
-const { getClubScoreWithCaptain, getLiveElementsMap } = require("../../lib/managerData");
+const { getClubScoreWithCaptain, buildLiveContext } = require("../../lib/managerData");
 
 exports.handler = async (event) => {
   try {
@@ -57,17 +57,17 @@ exports.handler = async (event) => {
       return standingsCache[team.club];
     }
 
-    let liveElementsMap = null;
+    let liveContext = null;
     if (requestedEvent === currentEvent) {
-      liveElementsMap = await getLiveElementsMap(requestedEvent);
+      liveContext = await buildLiveContext(bootstrap, requestedEvent);
     }
 
     const requestedEv = bootstrap.events.find((e) => e.id === requestedEvent);
     const locked = requestedEv ? Date.now() >= new Date(requestedEv.deadline_time).getTime() : false;
 
     const [clubResult, opponentResult] = await Promise.all([
-      getClubScoreWithCaptain(clubTeam, requestedEvent, currentEvent, getStandings, liveElementsMap),
-      getClubScoreWithCaptain(opponentTeam, requestedEvent, currentEvent, getStandings, liveElementsMap),
+      getClubScoreWithCaptain(clubTeam, requestedEvent, currentEvent, getStandings, liveContext),
+      getClubScoreWithCaptain(opponentTeam, requestedEvent, currentEvent, getStandings, liveContext),
     ]);
 
     // Captain identity (and whether Max Chip was used) stays hidden
