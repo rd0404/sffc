@@ -6,7 +6,7 @@
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
-const { getClubScoreForEvent, getManagerBreakdown, getLiveElementsMap } = require("../../lib/managerData");
+const { getClubScoreForEvent, getManagerBreakdown, buildLiveContext } = require("../../lib/managerData");
 
 exports.handler = async (evt) => {
   try {
@@ -23,9 +23,9 @@ exports.handler = async (evt) => {
       return standingsCache[team.club];
     }
 
-    let liveElementsMap = null;
+    let liveContext = null;
     if (requestedEvent === currentEvent) {
-      liveElementsMap = await getLiveElementsMap(requestedEvent);
+      liveContext = await buildLiveContext(bootstrap, requestedEvent);
     }
 
     const clubScores = [];
@@ -35,8 +35,8 @@ exports.handler = async (evt) => {
       teamsConfig.map(async (team) => {
         const standingsData = await getStandings(team);
         const [score, managers] = await Promise.all([
-          getClubScoreForEvent(team, requestedEvent, currentEvent, getStandings, liveElementsMap),
-          getManagerBreakdown(team, requestedEvent, currentEvent, standingsData, liveElementsMap),
+          getClubScoreForEvent(team, requestedEvent, currentEvent, getStandings, liveContext),
+          getManagerBreakdown(team, requestedEvent, currentEvent, standingsData, liveContext),
         ]);
         clubScores.push({ club: team.club, score });
         allManagers = allManagers.concat(managers);
