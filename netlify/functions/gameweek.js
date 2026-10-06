@@ -21,6 +21,12 @@ exports.handler = async (evt) => {
     const currentEvent = fplClient.getCurrentEvent(bootstrap);
     const requestedEvent = params.event ? parseInt(params.event, 10) : currentEvent;
 
+    // Captain details stay hidden until that gameweek's deadline passes
+    // (same rule as Captain Picks / Compare) — the scores themselves are
+    // always captain-doubled correctly; only the reveal is gated.
+    const requestedEv = bootstrap.events.find((e) => e.id === requestedEvent);
+    const locked = requestedEv ? Date.now() >= new Date(requestedEv.deadline_time).getTime() : false;
+
     const fixtures = await fplClient.getFixtures(requestedEvent);
     const { opponentOf, fixtureStatusOf } = buildFixtureLookups(fixtures);
 
@@ -78,15 +84,19 @@ exports.handler = async (evt) => {
           club: homeTeam.club,
           badge: teamCodeByFplId[homeId] ? badgeUrl(teamCodeByFplId[homeId]) : null,
           score: homeResult.total,
-          captainEntry: homeResult.captainEntry,
-          usedMaxChip: homeResult.usedMaxChip,
+          captainEntry: locked ? homeResult.captainEntry : null,
+          captainPoints: locked ? homeResult.captainPoints : null,
+          captainSubmitted: locked ? homeResult.submitted : null,
+          usedMaxChip: locked ? homeResult.usedMaxChip : false,
         },
         away: {
           club: awayTeam.club,
           badge: teamCodeByFplId[awayId] ? badgeUrl(teamCodeByFplId[awayId]) : null,
           score: awayResult.total,
-          captainEntry: awayResult.captainEntry,
-          usedMaxChip: awayResult.usedMaxChip,
+          captainEntry: locked ? awayResult.captainEntry : null,
+          captainPoints: locked ? awayResult.captainPoints : null,
+          captainSubmitted: locked ? awayResult.submitted : null,
+          usedMaxChip: locked ? awayResult.usedMaxChip : false,
         },
         status: fixtureStatusOf[homeId] || "not_started",
       });
@@ -98,6 +108,7 @@ exports.handler = async (evt) => {
       body: JSON.stringify({
         event: requestedEvent,
         isCurrent: requestedEvent === currentEvent,
+        locked,
         matches,
       }),
     };
