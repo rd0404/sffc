@@ -84,10 +84,29 @@ exports.handler = async (evt) => {
       prevPositionByClub[row.club] = i + 1;
     });
 
+    // Form guide: each club's last 5 results (W/D/L), oldest -> newest,
+    // built from the exact same per-gameweek match results the table
+    // itself is built from (so it always agrees with the table).
+    const formByClub = {};
+    teamsConfig.forEach((t) => {
+      formByClub[t.club] = [];
+    });
+    [...pairs]
+      .sort((a, b) => a.event - b.event)
+      .forEach((p) => {
+        p.results.forEach((r) => {
+          const homeRes = r.homePts === 3 ? "W" : r.homePts === 1 ? "D" : "L";
+          const awayRes = r.awayPts === 3 ? "W" : r.awayPts === 1 ? "D" : "L";
+          if (formByClub[r.home]) formByClub[r.home].push(homeRes);
+          if (formByClub[r.away]) formByClub[r.away].push(awayRes);
+        });
+      });
+
     const standings = fullTable.map((row, i) => ({
       ...row,
       previousPosition: prevPairs.length ? prevPositionByClub[row.club] || null : null,
       settling: settlingStatusByClub[row.club] || null,
+      form: (formByClub[row.club] || []).slice(-5),
     }));
 
     return {
