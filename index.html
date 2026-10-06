@@ -742,32 +742,117 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 
-  .deadline-bar {
+  .deadline-ticker {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-    padding: 6px 10px;
+    gap: 4px;
+    min-width: 0;
+  }
+  .dt-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-right: 2px;
+    white-space: nowrap;
+  }
+  .dt-seg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     background: var(--surface-2);
     border: 1px solid var(--line);
-    border-radius: 8px;
-    font-size: 12.5px;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
+    border-radius: 6px;
+    padding: 2px 0 1px;
+    min-width: 30px;
+    line-height: 1.1;
   }
-  .deadline-label { font-weight: 600; color: var(--text); }
-  .deadline-count {
+  .dt-seg b {
     font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
     font-weight: 700;
     color: var(--amber-bright);
   }
-  .deadline-count.urgent { color: var(--amber); }
-  .deadline-count.critical { color: var(--loss); animation: pulse 1.6s infinite; }
-  .deadline-when { overflow: hidden; text-overflow: ellipsis; }
-  @media (max-width: 480px) {
-    .deadline-when { display: none; }
+  .dt-seg i {
+    font-style: normal;
+    font-size: 8px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-faint);
   }
+  .deadline-ticker.urgent .dt-seg b { color: var(--amber); }
+  .deadline-ticker.critical .dt-seg b { color: var(--loss); }
+  .deadline-ticker.critical .dt-seg:last-child b { animation: pulse 1.6s infinite; }
+
+  .myclub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px 2px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+  }
+  .myclub-row select { flex: 1; min-width: 0; }
+  tr.my-club td { background: rgba(212, 175, 55, 0.10); }
+  tr.my-club td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+
+  .updated-stamp {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin: 0 0 10px;
+    font-family: 'Inter', sans-serif;
+  }
+  .updated-stamp.live { color: var(--pitch-bright); font-weight: 600; }
+
+  .avail-flag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    vertical-align: middle;
+    cursor: help;
+    white-space: nowrap;
+  }
+  .avail-d { background: rgba(212, 175, 55, 0.18); color: var(--amber-bright); }
+  .avail-i, .avail-s, .avail-u, .avail-n { background: rgba(193, 73, 74, 0.18); color: var(--loss); }
+
+  .cotw {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--amber-dim);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+  .cotw-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 3px;
+  }
+  .cotw-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--amber-bright);
+  }
+  .cotw-pts {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--amber-bright);
+    white-space: nowrap;
+  }
+  tr.cotw-row td { color: var(--amber-bright); }
 
   .club-link {
     color: inherit;
@@ -1282,6 +1367,21 @@
 
     .submit-option-label, .submit-option-sub { word-break: break-word; }
   }
+
+  /* ---- Compact header on phones: 2 slim rows, countdown on the Refresh line ---- */
+  @media (max-width: 600px) {
+    header { padding: 8px 12px; }
+    .header-row { gap: 8px; align-items: center; }
+    .header-left { width: 100%; gap: 10px; }
+    .season-tag { display: none; }
+    h1 { font-size: 17px; }
+    .hamburger-btn { width: 34px; height: 34px; }
+    .crest-icon.header-crest { width: 30px; height: 30px; }
+    .header-actions { width: 100%; gap: 8px; justify-content: flex-end; }
+    .deadline-ticker { margin-right: auto; }
+    .theme-toggle-btn { width: 34px; height: 34px; font-size: 15px; }
+    .refresh-btn { padding: 7px 12px; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -1300,14 +1400,16 @@
       </div>
     </div>
     <div class="header-actions">
+      <div class="deadline-ticker" id="deadlineBar" style="display:none;">
+        <span class="dt-label" id="deadlineLabel"></span>
+        <span class="dt-seg"><b id="dtD">00</b><i>Day</i></span>
+        <span class="dt-seg"><b id="dtH">00</b><i>Hr</i></span>
+        <span class="dt-seg"><b id="dtM">00</b><i>Min</i></span>
+        <span class="dt-seg"><b id="dtS">00</b><i>Sec</i></span>
+      </div>
       <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle light/dark mode">🌙</button>
       <button class="refresh-btn" id="refreshBtn">Refresh</button>
     </div>
-  </div>
-  <div class="deadline-bar" id="deadlineBar" style="display:none;">
-    <span class="deadline-label" id="deadlineLabel"></span>
-    <span class="deadline-count" id="deadlineCount"></span>
-    <span class="deadline-when" id="deadlineWhen"></span>
   </div>
 </header>
 
@@ -1322,6 +1424,11 @@
       </div>
     </div>
     <button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button>
+  </div>
+
+  <div class="myclub-row">
+    <label for="myClubSelect">⭐ My club</label>
+    <select id="myClubSelect"><option value="">Not set</option></select>
   </div>
 
   <div class="drawer-group-label">This Season</div>
@@ -1351,6 +1458,8 @@
 
 <main>
 
+  <div class="updated-stamp" id="updatedStamp" style="display:none;"></div>
+
   <section id="standings" class="panel">
     <div class="filter-row">
       <select id="standingsPhase">
@@ -1358,6 +1467,7 @@
         <option value="2">Phase 2 (GW20-38)</option>
       </select>
     </div>
+    <p class="settling-note" id="myClubHint" style="display:none;margin:0 0 10px;">⭐ Tip: set <strong>My club</strong> in the menu to highlight your team here and pre-select it across the site.</p>
     <div class="seg-control" id="standingsSeg">
       <button class="seg-btn active" data-view="table">Standings</button>
       <button class="seg-btn" data-view="form">Form</button>
@@ -1792,6 +1902,8 @@
     const el = document.getElementById('standingsContent');
     const data = lastStandingsData;
     if (!data) return;
+    const mine = getMyClub();
+    updateMyClubHint();
     let html = '';
     if (data.provisionalEvent) {
       html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
@@ -1801,9 +1913,9 @@
       // Compact 3-column view (no horizontal scrolling on phones).
       html += '<div class="table-scroll"><table class="form-table"><thead><tr><th></th><th>Club</th><th class="form-th">Last 5</th></tr></thead><tbody>';
       data.standings.forEach((t, i) => {
-        html += `<tr>
+        html += `<tr class="${t.club === mine ? 'my-club' : ''}">
           <td class="rank-cell num scoreboard-nums">${i + 1}</td>
-          <td class="club-cell">${t.club}${settlingDotHTML(t)}</td>
+          <td class="club-cell">${t.club === mine ? '⭐ ' : ''}${t.club}${settlingDotHTML(t)}</td>
           <td class="form-cell">${formChipsHTML(t.form)}</td>
         </tr>`;
       });
@@ -1824,10 +1936,10 @@
             moveHtml = '<span class="move-flat">&#9679;</span>';
           }
         }
-        html += `<tr>
+        html += `<tr class="${t.club === mine ? 'my-club' : ''}">
           <td class="rank-cell num scoreboard-nums">${position}</td>
           <td class="move-cell">${moveHtml}</td>
-          <td class="club-cell">${t.club}${settlingDotHTML(t)}</td>
+          <td class="club-cell">${t.club === mine ? '⭐ ' : ''}${t.club}${settlingDotHTML(t)}</td>
           <td class="num scoreboard-nums">${t.played}</td>
           <td class="num scoreboard-nums">${t.won}</td>
           <td class="num scoreboard-nums">${t.drawn}</td>
@@ -1957,6 +2069,7 @@
       if (!filtered.length) {
         html += '<tr><td colspan="5"><div class="state-msg">No matching teams.</div></td></tr>';
       }
+      const mine = getMyClub();
       filtered.forEach(m => {
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
@@ -1966,7 +2079,7 @@
         } else if (m.status === 'live') {
           vsCell = '<span class="settling-badge settling-live" title="Match in progress">vs<span class="settling-dot"></span></span>';
         }
-        html += `<tr>
+        html += `<tr class="${(m.home.club === mine || m.away.club === mine) ? 'my-club' : ''}">
           <td class="club-cell ${homeWinning ? 'win-score' : ''}"><span class="club-cell-inner">${m.home.badge ? `<img class="club-badge" src="${m.home.badge}" alt="${m.home.club}" />` : ''}${m.home.club}</span></td>
           <td class="num scoreboard-nums ${homeWinning ? 'win-score' : ''}">${m.home.score}</td>
           <td class="results-vs-cell">${vsCell}</td>
@@ -1988,7 +2101,7 @@
     const capMark = p.isCaptain ? '<span class="player-chip-cap">C</span>' : (p.isViceCaptain ? '<span class="player-chip-cap" style="color:var(--text-faint)">V</span>' : '');
     return `<span class="player-chip ${p.multiplier === 0 ? 'bench' : ''}">
       <span class="player-chip-dot ${p.status}"></span>
-      <span class="player-chip-name">${p.name}</span>
+      <span class="player-chip-name">${p.name}</span>${availFlagHTML(p)}
       <span class="player-chip-club">${p.realClub || ''}</span>
       ${capMark}
     </span>`;
@@ -2008,7 +2121,7 @@
       </div>`).join('');
   }
 
-  // ----- Next-deadline countdown (shown in the sticky header on every tab) -----
+  // ----- Next-deadline countdown: Day / Hr / Min / Sec ticker in the header -----
   let nextDeadline = null;
   let deadlineRefetching = false;
 
@@ -2019,16 +2132,6 @@
       nextDeadline = null;
     }
     renderDeadline();
-  }
-
-  function formatCountdown(ms) {
-    const s = Math.floor(ms / 1000);
-    const d = Math.floor(s / 86400);
-    const h = Math.floor((s % 86400) / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    if (d > 0) return `${d}d ${h}h ${m}m`;
-    return `${h}h ${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`;
   }
 
   function renderDeadline() {
@@ -2047,13 +2150,110 @@
       }
       return;
     }
+    const s = Math.floor(ms / 1000);
+    const pad = (n) => String(n).padStart(2, '0');
     bar.style.display = 'flex';
-    document.getElementById('deadlineLabel').textContent = `⏱ GW${nextDeadline.event} deadline`;
-    const countEl = document.getElementById('deadlineCount');
-    countEl.textContent = formatCountdown(ms);
-    countEl.className = 'deadline-count' + (ms < 2 * 3600 * 1000 ? ' critical' : ms < 24 * 3600 * 1000 ? ' urgent' : '');
-    document.getElementById('deadlineWhen').textContent = '· ' + formatDeadline(nextDeadline.deadlineTime);
-    bar.title = 'Captain submissions lock at this deadline';
+    document.getElementById('deadlineLabel').textContent = `\u23F1 GW${nextDeadline.event}`;
+    document.getElementById('dtD').textContent = pad(Math.floor(s / 86400));
+    document.getElementById('dtH').textContent = pad(Math.floor((s % 86400) / 3600));
+    document.getElementById('dtM').textContent = pad(Math.floor((s % 3600) / 60));
+    document.getElementById('dtS').textContent = pad(s % 60);
+    bar.className = 'deadline-ticker' + (ms < 2 * 3600 * 1000 ? ' critical' : ms < 24 * 3600 * 1000 ? ' urgent' : '');
+    bar.title = `GW${nextDeadline.event} deadline: ${formatDeadline(nextDeadline.deadlineTime)} (captain submissions lock then)`;
+  }
+
+  // ----- "My club": remembered on this device, pre-selects & highlights everywhere -----
+  const MYCLUB_KEY = 'sffc-myclub';
+  function getMyClub() {
+    try { return localStorage.getItem(MYCLUB_KEY) || ''; } catch (_) { return ''; }
+  }
+  function populateMyClubSelect() {
+    const sel = document.getElementById('myClubSelect');
+    CLUBS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    sel.value = getMyClub();
+  }
+  function applyMyClubToSelectors() {
+    const club = getMyClub();
+    if (!club) return;
+    ['compareClub', 'ownershipClub', 'progressTeam', 'fplChipsClub', 'submitClub'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && [...el.options].some(o => o.value === club)) el.value = club;
+    });
+  }
+  function updateMyClubHint() {
+    const hint = document.getElementById('myClubHint');
+    if (hint) hint.style.display = getMyClub() ? 'none' : 'block';
+  }
+
+  // ----- Auto-refresh while matches are live -----
+  let silentRefresh = false;     // true during background refreshes: no "Loading..." flashes
+  let liveMode = false;
+  let lastUpdated = null;
+  let autoRefreshBusy = false;
+
+  function renderStamp() {
+    const el = document.getElementById('updatedStamp');
+    if (!lastUpdated) return;
+    const t = lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    el.textContent = (liveMode ? '\u25CF Live \u00B7 auto-updating \u00B7 ' : '') + 'Last updated ' + t;
+    el.className = 'updated-stamp' + (liveMode ? ' live' : '');
+    el.style.display = 'block';
+  }
+  function markUpdated() {
+    lastUpdated = new Date();
+    renderStamp();
+  }
+  async function checkLive() {
+    try {
+      const st = await fetchJSON('/api/live-status');
+      liveMode = !!st.live;
+    } catch (_) { /* keep previous value */ }
+    return liveMode;
+  }
+  async function autoRefreshTick() {
+    if (document.hidden || autoRefreshBusy) return;
+    autoRefreshBusy = true;
+    try {
+      if (await checkLive()) {
+        const active = document.querySelector('.panel.active');
+        const loaders = {
+          standings: loadStandings,
+          results: loadResults,
+          totw: loadTeamOfWeek,
+          // don't collapse squads someone has open while reading
+          progress: () => (Object.values(progressDetailOpen).some(Boolean) ? Promise.resolve() : loadProgress()),
+          compare: loadCompare,
+          ownership: loadOwnership,
+          fixtures: loadFixtures,
+          captainpicks: refreshCaptainPoints,
+        };
+        const loader = active && loaders[active.id];
+        if (loader) {
+          silentRefresh = true;
+          try { await loader(); } finally { silentRefresh = false; }
+          lastUpdated = new Date();
+        }
+      }
+      renderStamp();
+    } finally {
+      silentRefresh = false;
+      autoRefreshBusy = false;
+    }
+  }
+
+  // ----- Injury / news flags (FPL availability) -----
+  function availFlagHTML(o) {
+    if (!o || !o.availability || o.availability === 'a') return '';
+    const labels = { d: 'Doubtful', i: 'Injured', s: 'Suspended', u: 'Unavailable', n: 'Not in squad' };
+    const short = { d: 'D', i: 'INJ', s: 'SUS', u: 'OUT', n: 'N/A' };
+    const chance = (o.chance != null && o.chance < 100) ? ` \u00B7 ${o.chance}%` : '';
+    const tip = ((o.news ? o.news + ' \u2014 ' : '') + (labels[o.availability] || '') + chance).replace(/"/g, '&quot;');
+    return `<span class="avail-flag avail-${o.availability}" title="${tip}">${short[o.availability] || '!'}${chance}</span>`;
   }
 
   let currentGWCache = null;
@@ -2105,7 +2305,7 @@
       return;
     }
     progressDetailOpen[sideId] = true;
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/squad-detail?club=${encodeURIComponent(club)}&event=${gw}`);
       el.innerHTML = squadManagersHTML(data.managers);
@@ -2127,7 +2327,7 @@
     }
 
     opponentEl.textContent = '\u2026';
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const [gwData, progressData] = await Promise.all([
         fetchJSON(`/api/gameweek?event=${gw}`),
@@ -2189,7 +2389,7 @@
         if (seen.has(p.name)) return;
         seen.add(p.name);
         const key = p.name + '|' + (p.realClub || '');
-        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, startingCount: 0, benchCount: 0, owners: [] };
+        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, startingCount: 0, benchCount: 0, owners: [], availability: p.availability, chance: p.chance, news: p.news };
         map[key].count += 1;
         if (starterNames.has(p.name)) map[key].startingCount += 1;
         else map[key].benchCount += 1;
@@ -2212,7 +2412,7 @@
         countCell = `${r.count}/${totalManagers} <span class="sub-tag">(SUB)</span>`;
       }
       html += `<tr>
-        <td class="club-cell">${r.name}</td>
+        <td class="club-cell">${r.name}${availFlagHTML(r)}</td>
         <td class="ownership-realclub">${r.realClub || ''}</td>
         <td class="num scoreboard-nums ownership-count">${countCell}</td>
       </tr>`;
@@ -2232,7 +2432,7 @@
       return;
     }
     opponentEl.textContent = '\u2026';
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const gwData = await fetchJSON(`/api/gameweek?event=${gw}`);
       const match = gwData.matches.find(m => m.home.club === club || m.away.club === club);
@@ -2365,7 +2565,7 @@
     const gw = document.getElementById('fixturesGW').value;
     const search = document.getElementById('fixturesSearch').value.trim().toLowerCase();
     if (!gw) { el.innerHTML = '<div class="state-msg">Pick a gameweek.</div>'; return; }
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/fixtures-list?event=${gw}`);
       const filtered = data.fixtures.filter(f =>
@@ -2393,7 +2593,7 @@
   async function loadChipUsage() {
     const el = document.getElementById('chipUsageContent');
     const phase = document.getElementById('chipUsagePhase').value;
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON('/api/chip-usage');
       let html = '<div>';
@@ -2435,7 +2635,7 @@
       el.innerHTML = '<div class="state-msg">Pick a gameweek and a team.</div>';
       return;
     }
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/fpl-chips?club=${encodeURIComponent(club)}&event=${gw}`);
       let html = `<div class="live-flag"><span class="live-dot"></span>Through Gameweek ${data.event} (Phase ${data.phase}, since GW${data.phaseStart})</div><div>`;
@@ -2456,7 +2656,7 @@
     const el = document.getElementById('captainCountContent');
     const phase = document.getElementById('captainCountPhase').value;
     const search = document.getElementById('captainCountSearch').value.trim().toLowerCase();
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/captain-count?phase=${phase}`);
       const filtered = data.teams.filter(t => !search || t.club.toLowerCase().includes(search));
@@ -2479,7 +2679,7 @@
   async function loadStatsRecords() {
     const el = document.getElementById('statsRecordsContent');
     const phase = document.getElementById('statsRecordsPhase').value;
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/stats-records?phase=${phase}`);
       let html = '<div class="table-scroll"><table class="stats-table"><thead><tr><th>Club</th><th class="num">Top-scoring weeks</th><th class="num">Bottom-scoring weeks</th></tr></thead><tbody>';
@@ -2493,6 +2693,94 @@
     }
   }
 
+  let captainPicksState = null;
+
+  function renderCaptainPicks() {
+    const el = document.getElementById('captainPicksContent');
+    const st = captainPicksState;
+    if (!st) return;
+    const locked = st.results.length > 0 && st.results[0].locked;
+    const pts = st.points;
+    const mine = getMyClub();
+
+    // Captain of the Week = highest-scoring captain (ties shown together).
+    // Clubs that didn't submit (auto-captain) don't compete.
+    let max = null;
+    let topClubs = [];
+    if (locked && pts) {
+      st.results.forEach(r => {
+        const x = pts[r.club];
+        if (!x || x.captainPoints == null || x.captainSubmitted === false) return;
+        if (max === null || x.captainPoints > max) { max = x.captainPoints; topClubs = [r.club]; }
+        else if (x.captainPoints === max) topClubs.push(r.club);
+      });
+    }
+
+    let html = '';
+    if (topClubs.length) {
+      const label = topClubs.map(club => {
+        const r = st.results.find(rr => rr.club === club);
+        const m = r.managers.find(mgr => mgr.entry === pts[club].captainEntry);
+        return `${m ? m.managerName : 'Unknown'} (${club})`;
+      }).join(' &amp; ');
+      html += `<div class="cotw"><div><div class="cotw-label">👑 Captain of the Week — GW${st.gw}</div><div class="cotw-name">${label}</div></div><div class="cotw-pts">${max} pts</div></div>`;
+    }
+
+    html += `<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th>${locked ? '<th class="num">Pts</th>' : ''}</tr></thead><tbody>`;
+    st.results.forEach(r => {
+      const x = pts ? pts[r.club] : null;
+      let nameHtml;
+      if (!r.locked) {
+        nameHtml = '<span class="captain-name pending">To be announced</span>';
+      } else if (r.record && r.record.maxChip) {
+        const m = x && x.captainEntry != null ? r.managers.find(mgr => mgr.entry === x.captainEntry) : null;
+        nameHtml = m
+          ? `${m.managerName} <span class="captain-chip-badge">MAX</span>`
+          : 'Max Captain chip active <span class="captain-chip-badge">MAX</span>';
+      } else if (r.record && r.record.managerEntry) {
+        const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
+        nameHtml = m ? m.managerName : 'Unknown manager';
+      } else {
+        nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
+      }
+
+      let ptsCell = '';
+      if (locked) {
+        if (!pts) ptsCell = '<td class="num">…</td>';
+        else if (x && x.captainPoints != null) {
+          ptsCell = `<td class="num scoreboard-nums">${topClubs.includes(r.club) ? '👑 ' : ''}${x.captainPoints}${x.captainSubmitted === false ? ' <span class="sub-tag">(auto)</span>' : ''}</td>`;
+        } else ptsCell = '<td class="num">—</td>';
+      }
+
+      const cls = [r.club === mine ? 'my-club' : '', topClubs.includes(r.club) ? 'cotw-row' : ''].filter(Boolean).join(' ');
+      html += `<tr class="${cls}">
+        <td class="club-cell">${r.club === mine ? '⭐ ' : ''}${r.club}</td>
+        <td>${nameHtml}</td>
+        ${ptsCell}
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  }
+
+  // Captain points come from /api/gameweek (which only reveals captains
+  // after the deadline). Fetched after the names so the table shows fast.
+  async function refreshCaptainPoints() {
+    const st = captainPicksState;
+    if (!st || !st.results.length || !st.results[0].locked) return;
+    try {
+      const data = await fetchJSON(`/api/gameweek?event=${st.gw}`);
+      const map = {};
+      data.matches.forEach(m => [m.home, m.away].forEach(side => {
+        map[side.club] = { captainPoints: side.captainPoints, captainEntry: side.captainEntry, captainSubmitted: side.captainSubmitted };
+      }));
+      if (captainPicksState === st) {
+        st.points = map;
+        renderCaptainPicks();
+      }
+    } catch (_) { /* points are a bonus — names still show without them */ }
+  }
+
   async function loadCaptainPicks() {
     const el = document.getElementById('captainPicksContent');
     const gw = document.getElementById('captainPicksGW').value;
@@ -2500,31 +2788,14 @@
       el.innerHTML = '<div class="state-msg">Pick a gameweek.</div>';
       return;
     }
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const results = await Promise.all(
         TEAM_LINKS.map(t => fetchJSON(`/api/captain?club=${encodeURIComponent(t.club)}&event=${gw}`))
       );
-      let html = '<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th></tr></thead><tbody>';
-      results.forEach(r => {
-        let nameHtml;
-        if (!r.locked) {
-          nameHtml = '<span class="captain-name pending">To be announced</span>';
-        } else if (r.record && r.record.maxChip) {
-          nameHtml = 'Max Captain chip active <span class="captain-chip-badge">MAX</span>';
-        } else if (r.record && r.record.managerEntry) {
-          const m = r.managers.find(mgr => mgr.entry === r.record.managerEntry);
-          nameHtml = m ? m.managerName : 'Unknown manager';
-        } else {
-          nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
-        }
-        html += `<tr>
-          <td class="club-cell">${r.club}</td>
-          <td>${nameHtml}</td>
-        </tr>`;
-      });
-      html += '</tbody></table></div>';
-      el.innerHTML = html;
+      captainPicksState = { gw, results, points: null };
+      renderCaptainPicks();
+      await refreshCaptainPoints();
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load captain picks &mdash; ${err.message}</div>`;
     }
@@ -2669,7 +2940,7 @@
       el.innerHTML = '<div class="state-msg">Pick a gameweek and a club.</div>';
       return;
     }
-    el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/captain?club=${encodeURIComponent(club)}&event=${gw}`);
       const currentEntry = data.record && data.record.managerEntry ? data.record.managerEntry : null;
@@ -2739,7 +3010,7 @@
     if (!gw || !club) return;
 
     opponentEl.textContent = '…';
-    content.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
+    if (!silentRefresh) content.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
 
     try {
       const data = await fetchJSON(`/api/compare?club=${encodeURIComponent(club)}&event=${gw}`);
@@ -2798,11 +3069,9 @@
     }
   }
 
-  function loadAll() {
-    loadStandings();
-    loadResults();
-    loadTeamOfWeek();
-    loadProgress();
+  async function loadAll() {
+    await Promise.all([loadStandings(), loadResults(), loadTeamOfWeek(), loadProgress()]);
+    markUpdated();
   }
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
@@ -2851,6 +3120,8 @@
   populateSubmitClubSelect();
   populateOwnershipSelectors();
   populateProgressTeamSelect();
+  populateMyClubSelect();
+  applyMyClubToSelectors();
 
   document.getElementById('standingsPhase').addEventListener('change', loadStandings);
   document.getElementById('resultsGW').addEventListener('change', loadResults);
@@ -2925,6 +3196,7 @@
   document.getElementById('chipUsagePhase').addEventListener('change', loadChipUsage);
   loadChipUsage();
   populateFplChipsSelectors();
+  applyMyClubToSelectors();
   document.getElementById('fplChipsGW').addEventListener('change', loadFplChips);
   document.getElementById('fplChipsClub').addEventListener('change', loadFplChips);
   wirePhaseGW('fplChipsPhase', 'fplChipsGW', loadFplChips);
@@ -2933,6 +3205,29 @@
   loadStatsRecords();
   loadOwnership();
   loadAll();
+
+  // ---- My club: remembered on this device ----
+  updateMyClubHint();
+  document.getElementById('myClubSelect').addEventListener('change', (e) => {
+    try { localStorage.setItem(MYCLUB_KEY, e.target.value); } catch (_) {}
+    updateMyClubHint();
+    renderStandings();
+    renderCaptainPicks();
+    loadResults();
+    if (e.target.value) {
+      applyMyClubToSelectors();
+      loadCompare();
+      loadProgress();
+      loadOwnership();
+      loadFplChips();
+      loadSubmitCaptainForm();
+    }
+  });
+
+  // ---- Auto-refresh while any match is live (checked once a minute) ----
+  setInterval(autoRefreshTick, 55000 + Math.floor(Math.random() * 10000));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefreshTick(); });
+  setTimeout(() => { checkLive().then(renderStamp); }, 4000);
 </script>
 
 </body>
