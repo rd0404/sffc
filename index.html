@@ -714,6 +714,61 @@
     align-items: center;
     gap: 6px;
   }
+  .seg-control {
+    display: flex;
+    gap: 3px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+  .seg-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .seg-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--line);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .deadline-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .deadline-label { font-weight: 600; color: var(--text); }
+  .deadline-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--amber-bright);
+  }
+  .deadline-count.urgent { color: var(--amber); }
+  .deadline-count.critical { color: var(--loss); animation: pulse 1.6s infinite; }
+  .deadline-when { overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 480px) {
+    .deadline-when { display: none; }
+  }
+
   .club-link {
     color: inherit;
     text-decoration: underline;
@@ -1249,6 +1304,11 @@
       <button class="refresh-btn" id="refreshBtn">Refresh</button>
     </div>
   </div>
+  <div class="deadline-bar" id="deadlineBar" style="display:none;">
+    <span class="deadline-label" id="deadlineLabel"></span>
+    <span class="deadline-count" id="deadlineCount"></span>
+    <span class="deadline-when" id="deadlineWhen"></span>
+  </div>
 </header>
 
 <div class="drawer-overlay" id="drawerOverlay"></div>
@@ -1297,6 +1357,10 @@
         <option value="1">Phase 1 (GW1-19)</option>
         <option value="2">Phase 2 (GW20-38)</option>
       </select>
+    </div>
+    <div class="seg-control" id="standingsSeg">
+      <button class="seg-btn active" data-view="table">Standings</button>
+      <button class="seg-btn" data-view="form">Form</button>
     </div>
     <button class="admin-toggle-btn" id="standingsShareBtn" style="margin-bottom:12px;">📸 Share Screenshot</button>
     <div id="standingsContent"><div class="state-msg">Loading&hellip;</div></div>
@@ -1715,16 +1779,38 @@
     return `<a class="club-link" href="https://fantasy.premierleague.com/leagues/${t.leagueId}/standings/c" target="_blank" rel="noopener" title="Open ${clubName}'s mini-league">${clubName}</a>`;
   }
 
-  async function loadStandings() {
+  let standingsView = 'table';
+  let lastStandingsData = null;
+
+  function settlingDotHTML(t) {
+    return t.settling
+      ? `<span class="settling-dot inline ${t.settling === 'provisional' ? 'settling-provisional' : 'settling-live'}" title="${t.settling === 'provisional' ? 'Full-time, bonus not yet confirmed' : 'Match in progress'}"></span>`
+      : '';
+  }
+
+  function renderStandings() {
     const el = document.getElementById('standingsContent');
-    const phase = document.getElementById('standingsPhase').value;
-    try {
-      const data = await fetchJSON(`/api/standings-live?phase=${phase}`);
-      let html = '';
-      if (data.provisionalEvent) {
-        html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
-      }
-      html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th><th class="form-th">Form</th></tr></thead><tbody>';
+    const data = lastStandingsData;
+    if (!data) return;
+    let html = '';
+    if (data.provisionalEvent) {
+      html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
+    }
+
+    if (standingsView === 'form') {
+      // Compact 3-column view (no horizontal scrolling on phones).
+      html += '<div class="table-scroll"><table class="form-table"><thead><tr><th></th><th>Club</th><th class="form-th">Last 5</th></tr></thead><tbody>';
+      data.standings.forEach((t, i) => {
+        html += `<tr>
+          <td class="rank-cell num scoreboard-nums">${i + 1}</td>
+          <td class="club-cell">${t.club}${settlingDotHTML(t)}</td>
+          <td class="form-cell">${formChipsHTML(t.form)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+      html += '<p class="settling-note">Oldest result on the left, most recent on the right.</p>';
+    } else {
+      html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th></tr></thead><tbody>';
       data.standings.forEach((t, i) => {
         const position = i + 1;
         const gd = t.scoreFor - t.scoreAgainst;
@@ -1738,24 +1824,29 @@
             moveHtml = '<span class="move-flat">&#9679;</span>';
           }
         }
-        const settlingDot = t.settling
-          ? `<span class="settling-dot inline ${t.settling === 'provisional' ? 'settling-provisional' : 'settling-live'}" title="${t.settling === 'provisional' ? 'Full-time, bonus not yet confirmed' : 'Match in progress'}"></span>`
-          : '';
         html += `<tr>
           <td class="rank-cell num scoreboard-nums">${position}</td>
           <td class="move-cell">${moveHtml}</td>
-          <td class="club-cell">${t.club}${settlingDot}</td>
+          <td class="club-cell">${t.club}${settlingDotHTML(t)}</td>
           <td class="num scoreboard-nums">${t.played}</td>
           <td class="num scoreboard-nums">${t.won}</td>
           <td class="num scoreboard-nums">${t.drawn}</td>
           <td class="num scoreboard-nums">${t.lost}</td>
           <td class="num scoreboard-nums">${gd > 0 ? '+' + gd : gd}</td>
           <td class="num pts-cell scoreboard-nums">${t.points}</td>
-          <td class="form-cell">${formChipsHTML(t.form)}</td>
         </tr>`;
       });
       html += '</tbody></table></div>';
-      el.innerHTML = html;
+    }
+    el.innerHTML = html;
+  }
+
+  async function loadStandings() {
+    const el = document.getElementById('standingsContent');
+    const phase = document.getElementById('standingsPhase').value;
+    try {
+      lastStandingsData = await fetchJSON(`/api/standings-live?phase=${phase}`);
+      renderStandings();
     } catch (err) {
       el.innerHTML = `<div class="state-msg error">Couldn't load standings &mdash; ${err.message}</div>`;
     }
@@ -1915,6 +2006,54 @@
         <div class="squad-section-label">Bench</div>
         <div class="player-chip-list">${m.bench.map(playerChipHTML).join('')}</div>
       </div>`).join('');
+  }
+
+  // ----- Next-deadline countdown (shown in the sticky header on every tab) -----
+  let nextDeadline = null;
+  let deadlineRefetching = false;
+
+  async function loadNextDeadline() {
+    try {
+      nextDeadline = await fetchJSON('/api/next-deadline');
+    } catch (_) {
+      nextDeadline = null;
+    }
+    renderDeadline();
+  }
+
+  function formatCountdown(ms) {
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    return `${h}h ${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`;
+  }
+
+  function renderDeadline() {
+    const bar = document.getElementById('deadlineBar');
+    if (!nextDeadline || !nextDeadline.deadlineTime) {
+      bar.style.display = 'none';
+      return;
+    }
+    const ms = new Date(nextDeadline.deadlineTime).getTime() - Date.now();
+    if (ms <= 0) {
+      // Deadline just passed — fetch the following one (throttled).
+      bar.style.display = 'none';
+      if (!deadlineRefetching) {
+        deadlineRefetching = true;
+        loadNextDeadline().finally(() => setTimeout(() => { deadlineRefetching = false; }, 15000));
+      }
+      return;
+    }
+    bar.style.display = 'flex';
+    document.getElementById('deadlineLabel').textContent = `⏱ GW${nextDeadline.event} deadline`;
+    const countEl = document.getElementById('deadlineCount');
+    countEl.textContent = formatCountdown(ms);
+    countEl.className = 'deadline-count' + (ms < 2 * 3600 * 1000 ? ' critical' : ms < 24 * 3600 * 1000 ? ' urgent' : '');
+    document.getElementById('deadlineWhen').textContent = '· ' + formatDeadline(nextDeadline.deadlineTime);
+    bar.title = 'Captain submissions lock at this deadline';
   }
 
   let currentGWCache = null;
@@ -2668,8 +2807,19 @@
 
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
 
+  loadNextDeadline();
+  setInterval(renderDeadline, 1000);
+  setInterval(loadNextDeadline, 10 * 60 * 1000);
+
+  document.querySelectorAll('#standingsSeg .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      standingsView = btn.dataset.view;
+      document.querySelectorAll('#standingsSeg .seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderStandings();
+    });
+  });
   document.getElementById('standingsShareBtn').addEventListener('click', (e) => {
-    shareScreenshot('standingsContent', 'SFFC-Standings', e.target);
+    shareScreenshot('standingsContent', standingsView === 'form' ? 'SFFC-Form' : 'SFFC-Standings', e.target);
   });
   document.getElementById('resultsShareBtn').addEventListener('click', (e) => {
     shareScreenshot('resultsContent', 'SFFC-Results', e.target);
