@@ -110,3 +110,8 @@
   from = "/api/admin-captains"
   to = "/.netlify/functions/admin-captains"
   status = 200
+
+[[redirects]]
+  from = "/api/next-deadline"
+  to = "/.netlify/functions/next-deadline"
+  status = 200
