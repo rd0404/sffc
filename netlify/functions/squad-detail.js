@@ -79,6 +79,11 @@ exports.handler = async (evt) => {
             isCaptain: p.is_captain,
             isViceCaptain: p.is_vice_captain,
             multiplier: p.multiplier,
+            // FPL's own availability flag: a=available, d=doubtful,
+            // i=injured, s=suspended, u=unavailable, n=not in squad.
+            availability: el ? el.status : "a",
+            chance: el ? el.chance_of_playing_next_round : null,
+            news: el ? el.news : "",
           };
         }
 
