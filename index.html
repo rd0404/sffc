@@ -714,6 +714,33 @@
     align-items: center;
     gap: 6px;
   }
+  .club-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--amber-dim);
+    text-underline-offset: 3px;
+  }
+  .club-link:hover { text-decoration-color: var(--amber-bright); }
+
+  .form-th { text-align: center; }
+  .form-cell { text-align: center; white-space: nowrap; }
+  .form-chips { display: inline-flex; gap: 3px; }
+  .form-chip {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  .form-chip.form-W { background: var(--pitch); }
+  .form-chip.form-D { background: var(--draw); }
+  .form-chip.form-L { background: var(--loss); }
+
   .club-badge {
     width: 18px;
     height: 18px;
@@ -1673,6 +1700,21 @@
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
+  // Last-5 form guide, oldest -> newest (rightmost chip = most recent).
+  function formChipsHTML(form) {
+    if (!form || !form.length) return '<span class="move-flat">&mdash;</span>';
+    return '<span class="form-chips">' + form.map(r =>
+      `<span class="form-chip form-${r}" title="${r === 'W' ? 'Win' : r === 'D' ? 'Draw' : 'Loss'}">${r}</span>`
+    ).join('') + '</span>';
+  }
+
+  // Club name as a link to that club's FPL mini-league (opens in a new tab).
+  function leagueLink(clubName) {
+    const t = TEAM_LINKS.find(x => x.club === clubName);
+    if (!t) return clubName;
+    return `<a class="club-link" href="https://fantasy.premierleague.com/leagues/${t.leagueId}/standings/c" target="_blank" rel="noopener" title="Open ${clubName}'s mini-league">${clubName}</a>`;
+  }
+
   async function loadStandings() {
     const el = document.getElementById('standingsContent');
     const phase = document.getElementById('standingsPhase').value;
@@ -1682,7 +1724,7 @@
       if (data.provisionalEvent) {
         html += `<div class="live-flag"><span class="live-dot"></span>GW${data.provisionalEvent} in progress &mdash; provisional</div>`;
       }
-      html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th></tr></thead><tbody>';
+      html += '<div class="table-scroll"><table><thead><tr><th></th><th></th><th>Club</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GD</th><th class="num">Pts</th><th class="form-th">Form</th></tr></thead><tbody>';
       data.standings.forEach((t, i) => {
         const position = i + 1;
         const gd = t.scoreFor - t.scoreAgainst;
@@ -1709,6 +1751,7 @@
           <td class="num scoreboard-nums">${t.lost}</td>
           <td class="num scoreboard-nums">${gd > 0 ? '+' + gd : gd}</td>
           <td class="num pts-cell scoreboard-nums">${t.points}</td>
+          <td class="form-cell">${formChipsHTML(t.form)}</td>
         </tr>`;
       });
       html += '</tbody></table></div>';
@@ -2588,7 +2631,7 @@
       ];
 
       let html = `<div class="compare-fixture-line">${fixtureLine}</div>`;
-      html += `<div class="table-scroll"><table class="compare-stat-table"><thead><tr><th>Stat</th><th>${c.name}</th><th>${o.name}</th></tr></thead><tbody>`;
+      html += `<div class="table-scroll"><table class="compare-stat-table"><thead><tr><th>Stat</th><th>${leagueLink(c.name)}</th><th>${leagueLink(o.name)}</th></tr></thead><tbody>`;
       rows.forEach(([label, a, b]) => {
         html += `<tr><td>${label}</td><td class="scoreboard-nums">${a}</td><td class="scoreboard-nums">${b}</td></tr>`;
       });
@@ -2598,12 +2641,12 @@
         <div class="managers-behind-sub">Every fantasy manager owning each club, with their own points — same club, different results, since each manager's score depends on their own captain pick.</div>`;
       html += `<div class="managers-cols">
         <div>
-          <div class="managers-col-head">${c.name}</div>
+          <div class="managers-col-head">${leagueLink(c.name)}</div>
           <div class="managers-col-sub">${c.managers.length} managers</div>
           ${managerRowsHTML(c.managers)}
         </div>
         <div>
-          <div class="managers-col-head">${o.name}</div>
+          <div class="managers-col-head">${leagueLink(o.name)}</div>
           <div class="managers-col-sub">${o.managers.length} managers</div>
           ${managerRowsHTML(o.managers)}
         </div>
