@@ -37,7 +37,7 @@ exports.handler = async (event) => {
     const result = await sendEmail({
       to: process.env.ADMIN_EMAIL,
       subject: "SFFC Test Email",
-      html: `<p>This is a test email from the SFFC Fantasy League site, sent at ${new Date().toLocaleString()}.</p><p>If you're reading this, email sending is working correctly.</p>`,
+      html: `<p>This is a test email from the SFFC Fantasy League site, sent at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) + " IST"}.</p><p>If you're reading this, email sending is working correctly.</p>`,
     });
     return {
       statusCode: 200,
