@@ -1,7 +1,7 @@
 // Netlify Function — GET /.netlify/functions/test-email?adminPasskey=...
 //
 // Sends one plain test email to ADMIN_EMAIL, and returns exactly what
-// happened (success, or the real error message from Resend/env vars).
+// happened (success, or the real error message from Gmail/env vars).
 // Use this to verify the email setup works before relying on it inside
 // the captain-submission or deadline-summary flows.
 
@@ -18,11 +18,11 @@ exports.handler = async (event) => {
     };
   }
 
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ok: false, reason: "RESEND_API_KEY is not set in Netlify environment variables." }),
+      body: JSON.stringify({ ok: false, reason: "GMAIL_USER and/or GMAIL_APP_PASSWORD is not set in Netlify environment variables." }),
     };
   }
   if (!process.env.ADMIN_EMAIL) {
@@ -42,7 +42,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ok: true, sentTo: process.env.ADMIN_EMAIL, resendResult: result }),
+      body: JSON.stringify({ ok: true, sentTo: process.env.ADMIN_EMAIL, result }),
     };
   } catch (err) {
     return {
