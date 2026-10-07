@@ -132,7 +132,7 @@ exports.handler = async (event) => {
           await sendEmail({
             to: [...recipients],
             subject: `SFFC Captain Submitted \u2014 ${club}, GW${gw}${isAdmin ? " (admin override)" : ""}`,
-            html: `<p><strong>${club}</strong> submitted their GW${gw} captain${isAdmin ? " <em>(via admin override)</em>" : ""}:</p><p>${captainLabel}</p><p style="color:#888;font-size:12px;">Submitted at ${new Date().toLocaleString()}</p>`,
+            html: `<p><strong>${club}</strong> submitted their GW${gw} captain${isAdmin ? " <em>(via admin override)</em>" : ""}:</p><p>${captainLabel}</p><p style="color:#888;font-size:12px;">Submitted at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) + " IST"}</p>`,
           });
         } catch (err) {
           console.error("Confirmation email failed:", err.message);
