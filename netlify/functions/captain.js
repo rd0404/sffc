@@ -127,9 +127,7 @@ exports.handler = async (event) => {
       if (teamEmails[club]) recipients.add(teamEmails[club]);
       if (body.email) recipients.add(body.email);
 
-      let emailDebug = { attempted: false, recipients: [...recipients], error: null };
-      if (recipients.size) {
-        emailDebug.attempted = true;
+            if (recipients.size) {
         try {
           await sendEmail({
             to: [...recipients],
@@ -138,14 +136,13 @@ exports.handler = async (event) => {
           });
         } catch (err) {
           console.error("Confirmation email failed:", err.message);
-          emailDebug.error = err.message;
         }
       }
 
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ok: true, record, emailDebug }),
+        body: JSON.stringify({ ok: true, record }),
       };
     }
 
