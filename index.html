@@ -2666,7 +2666,7 @@
         html += `<div class="club-block"><div class="club-block-head">${t.club}</div>`;
         t.managers.forEach(m => {
           const warn = m.count < 2 ? ' warn' : '';
-          html += `<div class="club-block-row${warn}"><span>${m.teamName}</span><span class="scoreboard-nums">${m.count} time${m.count === 1 ? '' : 's'}${m.count < 2 ? ' (below minimum of 2)' : ''}</span></div>`;
+          html += `<div class="club-block-row${warn}"><span>${m.teamName}</span><span class="scoreboard-nums">${m.count}</span></div>`;
         });
         html += '</div>';
       });
@@ -3158,6 +3158,26 @@
 
   getCurrentGW().then(gw => {
     const nextGW = gw + 1;
+
+    // Same idea as Results ("Current GW"): every GW dropdown opens on the
+    // current gameweek, switching the phase first if needed.
+    const curPhase = gw >= 20 ? '2' : '1';
+    [['resultsPhase','resultsGW'],['totwPhase','totwGW'],['comparePhase','compareGW'],
+     ['fplChipsPhase','fplChipsGW'],['progressPhase','progressGW'],
+     ['captainPicksPhase','captainPicksGW'],['ownershipPhase','ownershipGW']].forEach(([pid, gid]) => {
+      const ps = document.getElementById(pid);
+      const gs = document.getElementById(gid);
+      if (!ps || !gs) return;
+      if (ps.value !== curPhase) {
+        ps.value = curPhase;
+        const [a, b] = phaseRange(curPhase);
+        populateGWSelect(gid, a, b);
+      }
+      if (gid === 'resultsGW' || gid === 'totwGW') return; // blank = Current GW, stays live
+      if ([...gs.options].some(o => o.value == gw)) gs.value = gw;
+    });
+    loadFplChips();
+    loadCompare();
 
     const submitGWSelect = document.getElementById('submitGW');
     if ([...submitGWSelect.options].some(o => o.value == nextGW)) {
