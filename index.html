@@ -3134,7 +3134,18 @@
   document.getElementById('ownershipClub').addEventListener('change', loadOwnership);
   document.getElementById('ownershipView').addEventListener('change', loadOwnership);
 
-  wirePhaseGW('resultsPhase', 'resultsGW', loadResults);
+  // Results: the GW dropdown always lists every gameweek (GW1-38). The phase
+  // dropdown just jumps to that phase's first GW, and picking a GW switches
+  // the phase label to match.
+  document.getElementById('resultsPhase').addEventListener('change', () => {
+    const ps = document.getElementById('resultsPhase');
+    document.getElementById('resultsGW').value = ps.value === '2' ? '20' : '1';
+    loadResults();
+  });
+  document.getElementById('resultsGW').addEventListener('change', () => {
+    const v = document.getElementById('resultsGW').value;
+    if (v) document.getElementById('resultsPhase').value = parseInt(v, 10) >= 20 ? '2' : '1';
+  });
   wirePhaseGW('totwPhase', 'totwGW', loadTeamOfWeek);
   wirePhaseGW('progressPhase', 'progressGW', loadProgress);
   wirePhaseGW('comparePhase', 'compareGW', loadCompare);
@@ -3159,6 +3170,7 @@
       const ps = document.getElementById(pid);
       const gs = document.getElementById(gid);
       if (!ps || !gs) return;
+      if (gid === 'resultsGW') return; // Results always lists all GW1-38
       if (ps.value !== curPhase) {
         ps.value = curPhase;
         const [a, b] = phaseRange(curPhase);
