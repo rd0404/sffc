@@ -2263,7 +2263,7 @@
       const data = await fetchJSON('/api/gameweek');
       currentGWCache = data.event;
     } catch (_) {
-      currentGWCache = 1;
+      return 1; // don't cache a failed lookup — try again next time
     }
     return currentGWCache;
   }
@@ -2699,34 +2699,11 @@
     const el = document.getElementById('captainPicksContent');
     const st = captainPicksState;
     if (!st) return;
-    const locked = st.results.length > 0 && st.results[0].locked;
     const pts = st.points;
     const mine = getMyClub();
 
-    // Captain of the Week = highest-scoring captain (ties shown together).
-    // Clubs that didn't submit (auto-captain) don't compete.
-    let max = null;
-    let topClubs = [];
-    if (locked && pts) {
-      st.results.forEach(r => {
-        const x = pts[r.club];
-        if (!x || x.captainPoints == null || x.captainSubmitted === false) return;
-        if (max === null || x.captainPoints > max) { max = x.captainPoints; topClubs = [r.club]; }
-        else if (x.captainPoints === max) topClubs.push(r.club);
-      });
-    }
-
     let html = '';
-    if (topClubs.length) {
-      const label = topClubs.map(club => {
-        const r = st.results.find(rr => rr.club === club);
-        const m = r.managers.find(mgr => mgr.entry === pts[club].captainEntry);
-        return `${m ? m.managerName : 'Unknown'} (${club})`;
-      }).join(' &amp; ');
-      html += `<div class="cotw"><div><div class="cotw-label">👑 Captain of the Week — GW${st.gw}</div><div class="cotw-name">${label}</div></div><div class="cotw-pts">${max} pts</div></div>`;
-    }
-
-    html += `<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th>${locked ? '<th class="num">Pts</th>' : ''}</tr></thead><tbody>`;
+    html += `<div class="table-scroll"><table class="captain-picks-table"><thead><tr><th>Club</th><th>Captain</th></tr></thead><tbody>`;
     st.results.forEach(r => {
       const x = pts ? pts[r.club] : null;
       let nameHtml;
@@ -2744,19 +2721,10 @@
         nameHtml = '<span class="captain-name pending">Not submitted \u2014 lowest scorer will be auto-captained</span>';
       }
 
-      let ptsCell = '';
-      if (locked) {
-        if (!pts) ptsCell = '<td class="num">…</td>';
-        else if (x && x.captainPoints != null) {
-          ptsCell = `<td class="num scoreboard-nums">${topClubs.includes(r.club) ? '👑 ' : ''}${x.captainPoints}${x.captainSubmitted === false ? ' <span class="sub-tag">(auto)</span>' : ''}</td>`;
-        } else ptsCell = '<td class="num">—</td>';
-      }
-
-      const cls = [r.club === mine ? 'my-club' : '', topClubs.includes(r.club) ? 'cotw-row' : ''].filter(Boolean).join(' ');
+      const cls = r.club === mine ? 'my-club' : '';
       html += `<tr class="${cls}">
         <td class="club-cell">${r.club === mine ? '⭐ ' : ''}${r.club}</td>
         <td>${nameHtml}</td>
-        ${ptsCell}
       </tr>`;
     });
     html += '</tbody></table></div>';
