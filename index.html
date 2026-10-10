@@ -1832,7 +1832,30 @@
     if (btn) { btn.textContent = 'Capturing\u2026'; btn.disabled = true; }
     try {
       const bg = getComputedStyle(document.body).backgroundColor;
-      const canvas = await html2canvas(el, { backgroundColor: bg, useCORS: true, scale: 2 });
+
+      // Temporary banner at the top of the picture: which page + which GW.
+      let label = '';
+      try {
+        const txt = el.innerText || '';
+        const m = txt.match(/(?:GAMEWEEK|Gameweek|GW)\s?(\d+)/);
+        if (elementId === 'standingsContent') {
+          const lf = await fetchJSON('/api/latest-finalized');
+          if (lf && lf.latestFinalized) label = 'After GW' + lf.latestFinalized;
+        } else if (m) {
+          label = 'GW' + m[1];
+        }
+      } catch (_) {}
+      const pageName = ({ resultsContent: 'Results', totwContent: 'Team of the Week', standingsContent: 'Standings' })[elementId] || '';
+      const banner = document.createElement('div');
+      banner.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;margin-bottom:10px;border-radius:10px;background:#F2C14E;color:#14161C;font-weight:700;font-size:16px;';
+      banner.innerHTML = '<span>SFFC Fantasy League' + (pageName ? ' \u00b7 ' + pageName : '') + '</span>' + (label ? '<span style="background:#14161C;color:#F2C14E;padding:3px 10px;border-radius:999px;">' + label + '</span>' : '');
+      el.insertBefore(banner, el.firstChild);
+      let canvas;
+      try {
+        canvas = await html2canvas(el, { backgroundColor: bg, useCORS: true, scale: 2 });
+      } finally {
+        banner.remove();
+      }
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         const file = new File([blob], filename + '.png', { type: 'image/png' });
