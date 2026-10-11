@@ -526,6 +526,8 @@
     font-size: 13px;
   }
   .club-block-row.warn { color: var(--loss); }
+  .cc-manager { color: var(--text-muted); font-size: 0.9em; }
+  .club-block-row.warn .cc-manager { color: inherit; opacity: .75; }
 
   .stats-table {
     width: 100%;
@@ -2696,14 +2698,15 @@
     if (!silentRefresh) el.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
     try {
       const data = await fetchJSON(`/api/captain-count?phase=${phase}`);
-      const filtered = data.teams.filter(t => !search || t.club.toLowerCase().includes(search));
+      const filtered = data.teams.filter(t => !search || t.club.toLowerCase().includes(search) ||
+        t.managers.some(m => (m.managerName || '').toLowerCase().includes(search) || (m.teamName || '').toLowerCase().includes(search)));
       let html = '';
       if (!filtered.length) html = '<div class="state-msg">No matching teams.</div>';
       filtered.forEach(t => {
         html += `<div class="club-block"><div class="club-block-head">${t.club}</div>`;
         t.managers.forEach(m => {
           const warn = m.count < 2 ? ' warn' : '';
-          html += `<div class="club-block-row${warn}"><span>${m.teamName}</span><span class="scoreboard-nums">${m.count}</span></div>`;
+          html += `<div class="club-block-row${warn}"><span>${m.teamName} <span class="cc-manager">&middot; ${m.managerName}</span></span><span class="scoreboard-nums">${m.count}</span></div>`;
         });
         html += '</div>';
       });
