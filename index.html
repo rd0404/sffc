@@ -682,6 +682,7 @@
   }
   .admin-toggle-btn:hover { border-color: var(--amber-dim); color: var(--amber-bright); }
 
+  .ownership-table tr.own-played td { text-decoration: line-through; opacity: .45; }
   .sub-tag {
     font-size: 10.5px;
     font-weight: 600;
@@ -1557,6 +1558,11 @@
         <option value="differential">Differentials only</option>
         <option value="full">Full ownership only</option>
       </select>
+      <select id="ownershipPlayed">
+        <option value="strike">Played: strike off</option>
+        <option value="hide">Played: hide</option>
+        <option value="show">Played: show normally</option>
+      </select>
     </div>
     <div id="ownershipContent"><div class="state-msg">Pick a gameweek and a team.</div></div>
   </section>
@@ -2412,7 +2418,7 @@
         if (seen.has(p.name)) return;
         seen.add(p.name);
         const key = p.name + '|' + (p.realClub || '');
-        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, startingCount: 0, benchCount: 0, owners: [], availability: p.availability, chance: p.chance, news: p.news };
+        if (!map[key]) map[key] = { name: p.name, realClub: p.realClub, count: 0, startingCount: 0, benchCount: 0, owners: [], availability: p.availability, chance: p.chance, news: p.news, status: p.status };
         map[key].count += 1;
         if (starterNames.has(p.name)) map[key].startingCount += 1;
         else map[key].benchCount += 1;
@@ -2422,7 +2428,13 @@
     return Object.values(map).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }
 
+  // A player counts as "played" once their real club's match is over
+  // (full-time, even if bonus is still provisional).
+  function isPlayedStatus(st) { return st === 'finished' || st === 'provisional'; }
+
   function ownershipTableHTML(rows, totalManagers) {
+    const playedMode = document.getElementById('ownershipPlayed').value;
+    if (playedMode === 'hide') rows = rows.filter(r => !isPlayedStatus(r.status));
     let html = '<div class="table-scroll"><table class="ownership-table"><thead><tr><th>Player</th><th>Club</th><th class="num">Owned By</th></tr></thead><tbody>';
     if (!rows.length) {
       html += '<tr><td colspan="3"><div class="state-msg">No players found.</div></td></tr>';
@@ -2434,8 +2446,10 @@
       } else if (r.benchCount > 0) {
         countCell = `${r.count}/${totalManagers} <span class="sub-tag">(SUB)</span>`;
       }
-      html += `<tr>
-        <td class="club-cell">${r.name}${availFlagHTML(r)}</td>
+      const playedCls = (playedMode === 'strike' && isPlayedStatus(r.status)) ? ' class="own-played"' : '';
+      const liveDot = r.status === 'live' ? '<span class="settling-dot inline settling-live" title="Match in progress"></span>' : '';
+      html += `<tr${playedCls}>
+        <td class="club-cell">${r.name}${liveDot}${availFlagHTML(r)}</td>
         <td class="ownership-realclub">${r.realClub || ''}</td>
         <td class="num scoreboard-nums ownership-count">${countCell}</td>
       </tr>`;
@@ -3133,6 +3147,7 @@
   document.getElementById('ownershipGW').addEventListener('change', loadOwnership);
   document.getElementById('ownershipClub').addEventListener('change', loadOwnership);
   document.getElementById('ownershipView').addEventListener('change', loadOwnership);
+  document.getElementById('ownershipPlayed').addEventListener('change', loadOwnership);
 
   // Results: the GW dropdown always lists every gameweek (GW1-38). The phase
   // dropdown just jumps to that phase's first GW, and picking a GW switches
