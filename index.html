@@ -1513,6 +1513,7 @@
       <select id="submitGW"></select>
       <select id="submitClub"></select>
     </div>
+    <div style="margin:-4px 0 10px;"><a href="#" id="submitShowPastLink" style="font-size:11px;color:var(--text-muted);text-decoration:underline;">Admin: show past gameweeks</a></div>
     <div id="submitCaptainContent"><div class="state-msg">Pick a gameweek and a club.</div></div>
   </section>
 
@@ -2038,6 +2039,24 @@
       opt.value = i;
       opt.textContent = 'GW' + i;
       select.appendChild(opt);
+    }
+  }
+
+  // Submit Captain: only gameweeks whose deadline has NOT passed are
+  // selectable. Past gameweeks are locked. (Admins can reveal them via the
+  // small link under the filters, for corrections.)
+  let submitOpenFrom = null;
+  let submitShowAll = false;
+  function refreshSubmitGWOptions(preferred) {
+    const ps = document.getElementById('submitPhase');
+    const [a, b] = phaseRange(ps.value);
+    const from = (submitShowAll || submitOpenFrom == null) ? a : Math.max(a, submitOpenFrom);
+    populateGWSelect('submitGW', from, b);
+    const sel = document.getElementById('submitGW');
+    if (!sel.options.length) {
+      sel.innerHTML = '<option value="">No open gameweeks</option>';
+    } else if (preferred && [...sel.options].some(o => o.value == preferred)) {
+      sel.value = preferred;
     }
   }
 
@@ -3171,7 +3190,17 @@
   wirePhaseGW('progressPhase', 'progressGW', loadProgress);
   wirePhaseGW('comparePhase', 'compareGW', loadCompare);
   wirePhaseGW('captainPicksPhase', 'captainPicksGW', loadCaptainPicks);
-  wirePhaseGW('submitPhase', 'submitGW', loadSubmitCaptainForm);
+  document.getElementById('submitPhase').addEventListener('change', () => {
+    refreshSubmitGWOptions();
+    loadSubmitCaptainForm();
+  });
+  document.getElementById('submitShowPastLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    submitShowAll = !submitShowAll;
+    e.target.textContent = submitShowAll ? 'Admin: hide past gameweeks' : 'Admin: show past gameweeks';
+    refreshSubmitGWOptions(document.getElementById('submitGW').value);
+    loadSubmitCaptainForm();
+  });
   wirePhaseGW('fixturesPhase', 'fixturesGW', loadFixtures);
   wirePhaseGW('ownershipPhase', 'ownershipGW', loadOwnership);
 
@@ -3203,13 +3232,13 @@
     loadFplChips();
     loadCompare();
 
-    const submitGWSelect = document.getElementById('submitGW');
-    if ([...submitGWSelect.options].some(o => o.value == nextGW)) {
-      submitGWSelect.value = nextGW;
-    } else if ([...submitGWSelect.options].some(o => o.value == gw)) {
-      submitGWSelect.value = gw;
-    }
-    loadSubmitCaptainForm();
+    // Open gameweeks = from the next upcoming deadline onwards.
+    fetchJSON('/api/next-deadline').then(nd => nd && nd.event ? nd.event : nextGW).catch(() => nextGW).then(openFrom => {
+      submitOpenFrom = openFrom;
+      document.getElementById('submitPhase').value = openFrom >= 20 ? '2' : '1';
+      refreshSubmitGWOptions(openFrom);
+      loadSubmitCaptainForm();
+    });
 
     const fixturesGWSelect = document.getElementById('fixturesGW');
     if ([...fixturesGWSelect.options].some(o => o.value == nextGW)) {
