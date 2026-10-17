@@ -2096,6 +2096,9 @@
       }
 
       html += `<div class="live-flag"><span class="live-dot"></span>Gameweek ${data.event}</div>`;
+      if (data.stale) {
+        html += `<p class="settling-note">FPL is slow to respond right now (common just after a deadline), so these are the last saved scores. They'll refresh automatically.</p>`;
+      }
       html += '<div class="table-scroll"><table class="results-table"><thead><tr><th>Home</th><th class="num">Pts</th><th></th><th class="num">Pts</th><th>Away</th></tr></thead><tbody>';
       if (!filtered.length) {
         html += '<tr><td colspan="5"><div class="state-msg">No matching teams.</div></td></tr>';
