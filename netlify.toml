@@ -6,6 +6,11 @@
 [functions."snapshot-gameweek-background"]
   schedule = "@hourly"
 
+# Keeps a "last good copy" of FPL data so the site survives FPL outages
+# right after a deadline.
+[functions."warm-cache-background"]
+  schedule = "*/10 * * * *"
+
 [functions."deadline-summary-background"]
   schedule = "@hourly"
 
