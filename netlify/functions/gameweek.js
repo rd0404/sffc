@@ -9,12 +9,13 @@ const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
 const { buildFixtureLookups } = require("../../lib/fixtures");
 const { getClubScoreWithCaptain, buildLiveContext } = require("../../lib/managerData");
+const { readStale, writeGood } = require("../../lib/staleCache");
 
 function badgeUrl(code) {
   return `https://resources.premierleague.com/premierleague/badges/50/t${code}.png`;
 }
 
-exports.handler = async (evt) => {
+async function compute(evt) {
   try {
     const params = evt.queryStringParameters || {};
     const bootstrap = await fplClient.getBootstrap();
@@ -119,4 +120,33 @@ exports.handler = async (evt) => {
       body: JSON.stringify({ error: err.message }),
     };
   }
+}
+
+// Wrapper: if the live computation fails (usually FPL erroring right after a
+// deadline), serve the last good copy for that gameweek, flagged as stale,
+// rather than a 500.
+exports.handler = async (evt) => {
+  const params = (evt && evt.queryStringParameters) || {};
+  const cacheKey = "gameweek:" + (params.event || "current");
+  const res = await compute(evt);
+  if (res.statusCode === 200) {
+    try {
+      const body = JSON.parse(res.body);
+      if (body.matches && body.matches.length) {
+        await writeGood(cacheKey, body, 60000);
+        // "current" and the explicit number share data; keep both warm
+        if (!params.event) await writeGood("gameweek:" + body.event, body, 60000);
+      }
+    } catch (_) {}
+    return res;
+  }
+  const stale = await readStale(cacheKey);
+  if (stale) {
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...stale, stale: true }),
+    };
+  }
+  return res;
 };
