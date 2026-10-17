@@ -29,10 +29,11 @@ async function getDeadlineInfo(gw) {
 async function findMaxChipUsedElsewhereInPhase(club, gw) {
   const phase = gw <= 19 ? 1 : 2;
   const [start, end] = getPhaseRange(phase);
-  for (let e = start; e <= end; e++) {
-    if (e === gw) continue;
-    const rec = await getCaptainRecord(club, e);
-    if (rec && rec.maxChip) return e;
+  const gws = [];
+  for (let e = start; e <= end; e++) if (e !== gw) gws.push(e);
+  const recs = await Promise.all(gws.map((e) => getCaptainRecord(club, e)));
+  for (let i = 0; i < gws.length; i++) {
+    if (recs[i] && recs[i].maxChip) return gws[i];
   }
   return null;
 }
@@ -51,6 +52,13 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: "club and event are required" }),
         };
       }
+      if (!Number.isInteger(gw) || gw < 1 || gw > 38) {
+        return {
+          statusCode: 400,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "event must be a gameweek number between 1 and 38" }),
+        };
+      }
 
       const team = teamsConfig.find((t) => t.club === club);
       if (!team) {
@@ -65,6 +73,14 @@ exports.handler = async (event) => {
 
       if (!isAdmin) {
         const { locked, deadlineTime } = await getDeadlineInfo(gw);
+        // Fail closed: if we can't establish an open deadline, don't accept it.
+        if (!deadlineTime) {
+          return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: `Can't confirm GW${gw}'s deadline right now — please try again shortly` }),
+          };
+        }
         if (locked) {
           return {
             statusCode: 403,
