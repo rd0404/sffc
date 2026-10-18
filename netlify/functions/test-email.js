@@ -6,6 +6,7 @@
 // the captain-submission or deadline-summary flows.
 
 const { sendEmail } = require("../../lib/emailClient");
+const teamEmails = require("../../lib/teamEmails");
 
 exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
@@ -33,16 +34,32 @@ exports.handler = async (event) => {
     };
   }
 
+  // Optional: &to=someone@example.com — only allowed for addresses that are
+  // already in the manager email list (or the admin address).
+  let target = process.env.ADMIN_EMAIL;
+  if (params.to) {
+    const want = String(params.to).trim().toLowerCase();
+    const allowed = new Set([...Object.values(teamEmails), process.env.ADMIN_EMAIL].filter(Boolean).map((e) => e.toLowerCase()));
+    if (!allowed.has(want)) {
+      return {
+        statusCode: 400,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ok: false, reason: "That address isn't in the manager email list." }),
+      };
+    }
+    target = want;
+  }
+
   try {
     const result = await sendEmail({
-      to: process.env.ADMIN_EMAIL,
+      to: target,
       subject: "SFFC Test Email",
       html: `<p>This is a test email from the SFFC Fantasy League site, sent at ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) + " IST"}.</p><p>If you're reading this, email sending is working correctly.</p>`,
     });
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ok: true, sentTo: process.env.ADMIN_EMAIL, result }),
+      body: JSON.stringify({ ok: true, sentTo: target, result }),
     };
   } catch (err) {
     return {
