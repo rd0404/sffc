@@ -919,6 +919,8 @@
 
   .results-table .club-cell { font-weight: 600; }
   .results-table .results-gw-cell { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
+  .results-table .gd-th { text-align: center; }
+  .results-table .results-gd { font-weight: 700; color: var(--text-muted); }
   .results-table .results-vs-cell { color: var(--text-faint); font-size: 12px; text-align: center; }
 
   .margin-callouts {
@@ -2118,7 +2120,7 @@
       if (data.stale) {
         html += `<p class="settling-note">FPL is slow to respond right now (common just after a deadline), so these are the last saved scores. They'll refresh automatically.</p>`;
       }
-      html += '<div class="table-scroll"><table class="results-table"><thead><tr><th>Home</th><th class="num">Pts</th><th></th><th class="num">Pts</th><th>Away</th></tr></thead><tbody>';
+      html += '<div class="table-scroll"><table class="results-table"><thead><tr><th>Home</th><th class="num">Pts</th><th class="gd-th">GD</th><th class="num">Pts</th><th>Away</th></tr></thead><tbody>';
       if (!filtered.length) {
         html += '<tr><td colspan="5"><div class="state-msg">No matching teams.</div></td></tr>';
       }
@@ -2126,11 +2128,13 @@
       filtered.forEach(m => {
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
-        let vsCell = 'vs';
+        const gdVal = Math.abs(m.home.score - m.away.score);
+        const gdText = gdVal === 0 ? '0' : '+' + gdVal;
+        let vsCell = `<span class="results-gd scoreboard-nums">${gdText}</span>`;
         if (m.status === 'provisional') {
-          vsCell = '<span class="settling-badge settling-provisional" title="Full-time, bonus points not yet confirmed \u2014 score may still change">vs<span class="settling-dot"></span></span>';
+          vsCell = `<span class="settling-badge settling-provisional" title="Full-time, bonus points not yet confirmed \u2014 score may still change">${gdText}<span class="settling-dot"></span></span>`;
         } else if (m.status === 'live') {
-          vsCell = '<span class="settling-badge settling-live" title="Match in progress">vs<span class="settling-dot"></span></span>';
+          vsCell = `<span class="settling-badge settling-live" title="Match in progress">${gdText}<span class="settling-dot"></span></span>`;
         }
         html += `<tr class="${(m.home.club === mine || m.away.club === mine) ? 'my-club' : ''}">
           <td class="club-cell ${homeWinning ? 'win-score' : ''}"><span class="club-cell-inner">${m.home.badge ? `<img class="club-badge" src="${m.home.badge}" alt="${m.home.club}" />` : ''}${m.home.club}</span></td>
