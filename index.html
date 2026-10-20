@@ -2129,7 +2129,7 @@
         const homeWinning = m.home.score > m.away.score;
         const awayWinning = m.away.score > m.home.score;
         const gdVal = Math.abs(m.home.score - m.away.score);
-        const gdText = gdVal === 0 ? '0' : '+' + gdVal;
+        const gdText = String(gdVal);
         let vsCell = `<span class="results-gd scoreboard-nums">${gdText}</span>`;
         if (m.status === 'provisional') {
           vsCell = `<span class="settling-badge settling-provisional" title="Full-time, bonus points not yet confirmed \u2014 score may still change">${gdText}<span class="settling-dot"></span></span>`;
