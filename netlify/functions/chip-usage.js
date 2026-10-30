@@ -1,5 +1,8 @@
-// GET /.netlify/functions/chip-usage
-// Which clubs have used their once-per-phase Max Captain chip, and when.
+// Netlify Function — GET /.netlify/functions/chip-usage
+//
+// Which clubs have used their once-per-phase Max Captain chip, and in
+// which gameweek — derived entirely from stored captain records, no
+// separate tracking needed.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const { captainsStore } = require("../../lib/captainStore");
@@ -24,6 +27,7 @@ exports.handler = async () => {
       }
       if (!data || !data.maxChip) continue;
 
+      // Key shape: captain:<encodedClub>:<event>
       const parts = blobMeta.key.split(":");
       const club = decodeURIComponent(parts[1]);
       const gw = parseInt(parts[2], 10);
@@ -46,3 +50,6 @@ exports.handler = async () => {
     };
   }
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

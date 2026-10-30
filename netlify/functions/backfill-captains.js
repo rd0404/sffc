@@ -1,9 +1,15 @@
-// One-time (but safe to re-run) backfill: matches transcribed GW1-3
-// captain names against each club's real 6 managers, writes the captain
-// records, and clears any existing GW1-3 snapshots so they recompute
-// WITH captain doubling instead of staying on old totals.
+// Netlify Function — GET /.netlify/functions/backfill-captains
 //
-// Visit this URL once in a browser after deploying.
+// ONE-TIME (but safe to re-run) backfill: matches the transcribed GW1-3
+// captain names against each club's real 6 managers (fetched live), and
+// writes the resulting captain records to Blobs. Also deletes any
+// existing GW1-3 result snapshots so the hourly job recomputes them WITH
+// captain doubling applied, instead of leaving them stuck on the old
+// pre-captain totals.
+//
+// Visit this URL once in a browser after deploying. Returns a JSON report
+// — check the "error" entries, if any, for name mismatches that need a
+// manual fix (e.g. a nickname vs. the real FPL account name).
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
@@ -81,6 +87,7 @@ exports.handler = async () => {
     }
   }
 
+  // Force GW1-3 snapshots to recompute now that captain data exists.
   const store = resultsStore();
   const deletedSnapshots = [];
   for (const event of [1, 2, 3]) {
@@ -107,3 +114,6 @@ exports.handler = async () => {
     }),
   };
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

@@ -28,3 +28,6 @@ exports.handler = async () => {
   }
   console.log("warm-cache", JSON.stringify(results));
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

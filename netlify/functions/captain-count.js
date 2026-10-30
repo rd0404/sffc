@@ -1,6 +1,9 @@
-// GET /.netlify/functions/captain-count?phase=1|2
-// Per club, how many times each member has been manually captained
-// within the phase. Max Captain chip weeks don't count toward any member.
+// Netlify Function — GET /.netlify/functions/captain-count?phase=1|2
+//
+// For each club, how many times each of the 6 members has been manually
+// captained within the given phase — the rulebook requires at least 2
+// per member per phase. Weeks where the Max Captain chip was used don't
+// count toward any specific member, matching the rulebook.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
@@ -41,6 +44,8 @@ exports.handler = async (event) => {
       body: JSON.stringify({ phase, teams: teamsOut }),
     };
   } catch (err) {
+    const storageResp = require("../../lib/blobStore").storageErrorResponse(err);
+    if (storageResp) return storageResp;
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
@@ -48,3 +53,6 @@ exports.handler = async (event) => {
     };
   }
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

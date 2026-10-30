@@ -115,6 +115,8 @@ exports.handler = async (evt) => {
       body: JSON.stringify({ standings, provisionalEvent, phase }),
     };
   } catch (err) {
+    const storageResp = require("../../lib/blobStore").storageErrorResponse(err);
+    if (storageResp) return storageResp;
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
@@ -122,3 +124,6 @@ exports.handler = async (evt) => {
     };
   }
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

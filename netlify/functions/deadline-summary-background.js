@@ -75,3 +75,6 @@ exports.handler = async () => {
     console.error("Deadline summary email failed:", err.message);
   }
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

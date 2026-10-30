@@ -1,5 +1,9 @@
-// GET /.netlify/functions/stats-records?phase=1|2
-// Top/bottom scoring week counts per club within a phase.
+// Netlify Function — GET /.netlify/functions/stats-records?phase=1|2
+//
+// For each club, how many finalized gameweeks (within the given phase)
+// they were the single top scorer, and how many they were the single
+// bottom scorer. Ties count for every tied club. Based only on finalized
+// (fully-finished) gameweeks, since that's the only permanent record.
 
 const teamsConfig = require("../../lib/teamsConfig");
 const { resultsStore } = require("../../lib/blobStore");
@@ -65,3 +69,6 @@ exports.handler = async (event) => {
     };
   }
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

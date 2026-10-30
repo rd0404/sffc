@@ -150,3 +150,6 @@ exports.handler = async (evt) => {
   }
   return res;
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

@@ -68,3 +68,6 @@ exports.handler = async (event) => {
     body: JSON.stringify({ event: targetEvent, cleared, skipped }),
   };
 };
+
+// Lets this function use Netlify's automatic storage credentials.
+exports.handler = require("../../lib/blobStore").wrapHandler(exports.handler);

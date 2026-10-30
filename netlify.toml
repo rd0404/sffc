@@ -14,6 +14,14 @@
 [functions."deadline-summary-background"]
   schedule = "@hourly"
 
+# Every 6 hours: checks saved data is readable; emails ADMIN_EMAIL if not.
+[functions."storage-check"]
+  schedule = "0 */6 * * *"
+
+# Sundays: emails a full backup (captains + results) to ADMIN_EMAIL.
+[functions."weekly-backup"]
+  schedule = "0 3 * * 0"
+
 # Optional but handy: lets you call /api/gameweek instead of the longer
 # default /.netlify/functions/gameweek path.
 [[redirects]]
@@ -124,4 +132,9 @@
 [[redirects]]
   from = "/api/live-status"
   to = "/.netlify/functions/live-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/storage-status"
+  to = "/.netlify/functions/storage-status"
   status = 200
