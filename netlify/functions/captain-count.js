@@ -14,7 +14,17 @@ exports.handler = async (event) => {
   try {
     const params = event.queryStringParameters || {};
     const phase = params.phase ? parseInt(params.phase, 10) : 1;
-    const [start, end] = getPhaseRange(phase);
+    const [start, phaseEnd] = getPhaseRange(phase);
+
+    // Only count gameweeks whose deadline has passed: picks for an upcoming GW
+    // can still be changed, so they must not show up in the count yet.
+    const bootstrap = await fplClient.getBootstrap();
+    const now = Date.now();
+    let lastLocked = 0;
+    for (const ev of bootstrap.events) {
+      if (new Date(ev.deadline_time).getTime() <= now && ev.id > lastLocked) lastLocked = ev.id;
+    }
+    const end = Math.min(phaseEnd, lastLocked);
 
     const teamsOut = await Promise.all(
       teamsConfig.map(async (team) => {
@@ -26,8 +36,10 @@ exports.handler = async (event) => {
           count: 0,
         }));
 
-        for (let gw = start; gw <= end; gw++) {
-          const record = await getCaptainRecord(team.club, gw);
+        const gws = [];
+        for (let gw = start; gw <= end; gw++) gws.push(gw);
+        const records = await Promise.all(gws.map((gw) => getCaptainRecord(team.club, gw)));
+        for (const record of records) {
           if (record && record.managerEntry) {
             const m = managers.find((mm) => mm.entry === record.managerEntry);
             if (m) m.count += 1;
@@ -41,7 +53,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phase, teams: teamsOut }),
+      body: JSON.stringify({ phase, countedThrough: end >= start ? end : null, teams: teamsOut }),
     };
   } catch (err) {
     const storageResp = require("../../lib/blobStore").storageErrorResponse(err);
