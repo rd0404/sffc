@@ -11,7 +11,7 @@
 // yourself, etc.) as a manual backup.
 
 const { resultsStore } = require("../../lib/blobStore");
-const { captainsStore } = require("../../lib/captainStore");
+const { listAllCaptainRecords } = require("../../lib/captainStore");
 
 exports.handler = async (event) => {
   try {
@@ -36,16 +36,7 @@ exports.handler = async (event) => {
       }
     }
 
-    const captains = {};
-    const cStore = captainsStore();
-    const { blobs: captainBlobs } = await cStore.list({ prefix: "captain:" });
-    for (const b of captainBlobs) {
-      try {
-        captains[b.key] = await cStore.get(b.key, { type: "json" });
-      } catch (_) {
-        // skip unreadable entries
-      }
-    }
+    const captains = await listAllCaptainRecords();
 
     const exportedAt = new Date().toISOString();
 

@@ -8,7 +8,7 @@
 // given); everything else is untouched.
 
 const teamsConfig = require("../../lib/teamsConfig");
-const { captainsStore, captainKey } = require("../../lib/captainStore");
+const { deleteCaptainRecord } = require("../../lib/captainStore");
 
 exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
@@ -43,20 +43,13 @@ exports.handler = async (event) => {
     targetTeams = [team];
   }
 
-  const store = captainsStore();
   const cleared = [];
   const skipped = [];
 
   for (const team of targetTeams) {
-    const key = captainKey(team.club, targetEvent);
     try {
-      const existing = await store.get(key, { type: "json" });
-      if (existing) {
-        await store.delete(key);
-        cleared.push(team.club);
-      } else {
-        skipped.push(team.club);
-      }
+      const removed = await deleteCaptainRecord(team.club, targetEvent);
+      (removed ? cleared : skipped).push(team.club);
     } catch (_) {
       skipped.push(team.club);
     }

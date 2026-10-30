@@ -2,7 +2,7 @@
 // results to ADMIN_EMAIL as a JSON attachment — a copy that lives outside
 // Netlify, so a suspension or storage problem can't lose the data.
 const { resultsStore } = require("../../lib/blobStore");
-const { captainsStore } = require("../../lib/captainStore");
+const { listAllCaptainRecords } = require("../../lib/captainStore");
 const { sendEmail } = require("../../lib/emailClient");
 
 async function dump(store, prefix) {
@@ -16,7 +16,7 @@ exports.handler = async () => {
   try {
     if (!process.env.ADMIN_EMAIL) return { statusCode: 200, body: "ADMIN_EMAIL not set - skipped" };
     const results = await dump(resultsStore(), "gw-");
-    const captains = await dump(captainsStore(), "captain:");
+    const captains = await listAllCaptainRecords();
     const exportedAt = new Date().toISOString();
     const day = exportedAt.slice(0, 10);
     await sendEmail({
