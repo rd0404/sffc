@@ -1,63 +1,30 @@
-// Netlify Scheduled Background Function.
-// Runs automatically on the schedule set in netlify.toml (hourly). Every
-// run checks gameweeks 1..(currentEvent - 1) — NEVER the gameweek FPL
-// still considers "current", even if all its fixtures report
-// finished:true, since bonus points can apparently still shift slightly
-// after that flag flips. Only a gameweek that's been fully superseded by
-// the next one is safe to lock in permanently. Skips any already
-// snapshotted, and computes + stores every newly-eligible one it finds.
+// Netlify Scheduled Background Function (hourly, see netlify.toml).
+// Locks every finished gameweek that isn't locked yet: the full Results page
+// and the standings numbers are saved once, and never recalculated after.
+// The gameweek FPL still calls "current" is never locked (bonus points can
+// still shift); only a week superseded by the next one is.
 
-const teamsConfig = require("../../lib/teamsConfig");
 const fplClient = require("../../lib/fplClient");
-const { buildFixtureLookups } = require("../../lib/fixtures");
-const { computeMatchResults } = require("../../lib/matchResults");
-const { getClubScoreWithCaptain } = require("../../lib/managerData");
-const { resultsStore } = require("../../lib/blobStore");
+const { readLocked, computeAndLock } = require("../../lib/lockStore");
 
 exports.handler = async () => {
-  const store = resultsStore();
   const bootstrap = await fplClient.getBootstrap();
   const currentEvent = fplClient.getCurrentEvent(bootstrap);
-
-  const standingsCache = {};
-  async function getStandings(team) {
-    if (!standingsCache[team.club]) {
-      standingsCache[team.club] = await fplClient.getLeagueStandings(team.leagueId);
-    }
-    return standingsCache[team.club];
-  }
-
-  let snapshotted = 0;
+  const lockedNow = [];
+  const skipped = {};
 
   for (let event = 1; event < currentEvent; event++) {
-    let existing = null;
+    if (await readLocked(event)) continue;
     try {
-      existing = await store.get(`gw-${event}`, { type: "json" });
-    } catch (_) {
-      existing = null;
+      const r = await computeAndLock(event);
+      if (r.locked) lockedNow.push(event);
+      else skipped[event] = r.reason;
+    } catch (err) {
+      skipped[event] = err.message;
     }
-    if (existing) continue;
-
-    const fixtures = await fplClient.getFixtures(event);
-    if (!fixtures.length) continue;
-    const allFinished = fixtures.every((f) => f.finished);
-    if (!allFinished) continue;
-
-    const { opponentOf } = buildFixtureLookups(fixtures);
-
-    const clubScore = {};
-    for (const team of teamsConfig) {
-      const result = await getClubScoreWithCaptain(team, event, currentEvent, getStandings);
-      clubScore[team.fplClubId] = result.total;
-    }
-
-    const results = computeMatchResults(teamsConfig, clubScore, opponentOf);
-
-    await store.setJSON(`gw-${event}`, { event, results });
-    snapshotted += 1;
   }
 
-  return { snapshotted };
+  return { lockedNow, skipped };
 };
 
 // Lets this function use Netlify's automatic storage credentials.

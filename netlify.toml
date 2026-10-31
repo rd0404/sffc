@@ -138,3 +138,8 @@
   from = "/api/storage-status"
   to = "/.netlify/functions/storage-status"
   status = 200
+
+[[redirects]]
+  from = "/api/audit"
+  to = "/.netlify/functions/audit"
+  status = 200
